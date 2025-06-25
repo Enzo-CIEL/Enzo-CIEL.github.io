@@ -68,21 +68,19 @@
         }
 
         .message-bubble {
-            max-width: 70%;
+            max-width: 100%;
             padding: 0.75rem 1rem;
             border-radius: 1.25rem;
             word-wrap: break-word;
         }
-        .my-message {
+        .my-message-bubble {
             background-color: var(--my-message-bg);
             color: var(--my-message-text);
-            align-self: flex-end;
             border-bottom-right-radius: 0.25rem;
         }
-        .other-message {
+        .other-message-bubble {
             background-color: var(--other-message-bg);
             color: var(--other-message-text);
-            align-self: flex-start;
             border-bottom-left-radius: 0.25rem;
         }
         .system-message, .date-separator {
@@ -103,16 +101,16 @@
             width: fit-content;
             margin: 0.5rem auto;
         }
-        .other-message .pseudo-text {
+        .pseudo-text {
             color: var(--text-secondary);
         }
         .time-text {
              opacity: 0.75;
         }
-        .my-message .time-text {
+        .my-message-bubble .time-text {
              color: var(--my-message-text);
         }
-         .other-message .time-text {
+         .other-message-bubble .time-text {
              color: var(--text-secondary);
         }
     </style>
@@ -126,7 +124,8 @@
             <p class="text-gray-600 mb-6">Choisissez un pseudo et un numéro de salon.</p>
             <form id="login-form">
                 <input type="text" id="pseudo-input" placeholder="Votre pseudo" class="w-full p-3 border rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500" required>
-                <input type="number" id="room-number-input" placeholder="Numéro du salon (ex: 12345)" class="w-full p-3 border rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
+                <input type="number" id="room-number-input" placeholder="Numéro du salon" class="w-full p-3 border rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
+                <input type="url" id="pfp-input" placeholder="URL de l'image (facultatif)" class="w-full p-3 border rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500">
                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
                     Rejoindre le salon
                 </button>
@@ -152,7 +151,7 @@
             </div>
         </header>
         
-        <main id="message-list" class="flex-grow overflow-y-auto p-4 flex flex-col gap-4">
+        <main id="message-list" class="flex-grow overflow-y-auto p-4 flex flex-col gap-2">
             <!-- Messages will be appended here -->
         </main>
         
@@ -191,9 +190,10 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chat-app';
         
         let app, db, auth;
-        let userId, userPseudo, chatRoomId;
+        let userId, userPseudo, chatRoomId, userPFP;
         let unsubscribeMessages = null;
         let lastMessageDate = null;
+        let isInitialLoad = true;
 
         try {
             app = initializeApp(firebaseConfig);
@@ -210,6 +210,7 @@
         const loginForm = document.getElementById('login-form');
         const pseudoInput = document.getElementById('pseudo-input');
         const roomInput = document.getElementById('room-number-input');
+        const pfpInput = document.getElementById('pfp-input');
         const roomDisplay = document.getElementById('room-display');
         const pseudoDisplay = document.getElementById('pseudo-display');
         const messageList = document.getElementById('message-list');
@@ -262,10 +263,10 @@
         };
 
         const showNotification = (title, body) => {
-            if (Notification.permission === 'granted') {
+            if (document.hidden && Notification.permission === 'granted') {
                 new Notification(title, {
                     body: body,
-                    icon: 'https://placehold.co/64x64/2563eb/ffffff?text=💬' // Generic chat icon
+                    icon: 'https://placehold.co/64x64/2563eb/ffffff?text=💬'
                 });
             }
         };
@@ -284,11 +285,13 @@
         };
         
         // --- Core Functions ---
-        const joinChat = async (roomId, pseudo) => {
+        const joinChat = async (roomId, pseudo, pfpUrl) => {
             chatRoomId = roomId;
             userPseudo = pseudo;
+            userPFP = pfpUrl;
             lastMessageDate = null;
-            messageList.innerHTML = ''; // Clear previous room's messages
+            messageList.innerHTML = '';
+            isInitialLoad = true;
 
             await requestNotificationPermission();
 
@@ -312,15 +315,17 @@
             }
             chatRoomId = null;
             userPseudo = null;
+            userPFP = null;
             messageList.innerHTML = '';
             chatScreen.classList.add('hidden');
             loginScreen.classList.remove('hidden');
             roomInput.value = '';
             pseudoInput.value = '';
+            pfpInput.value = '';
         }
 
         const addMessageToDOM = (message) => {
-            const messageDate = message.timestamp?.toDate ? message.timestamp.toDate() : new Date();
+            const messageDate = message.timestamp?.toDate();
 
             if (messageDate) {
                 const messageDateString = messageDate.toDateString();
@@ -341,12 +346,23 @@
                 messageList.appendChild(systemMessageDiv);
             } else {
                 const isMyMessage = message.senderId === userId;
-                const messageWrapper = document.createElement('div');
-                messageWrapper.className = `flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`;
-
+                const messageContainer = document.createElement('div');
+                messageContainer.className = `flex items-start gap-2.5 ${isMyMessage ? 'flex-row-reverse' : ''}`;
+                
+                // Avatar
+                const avatarImg = document.createElement('img');
+                avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
+                const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(message.pseudo || 'A').charAt(0).toUpperCase()}`;
+                avatarImg.src = message.pfp || defaultAvatar;
+                avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
+                avatarImg.alt = message.pseudo;
+                
+                // Content (bubble and time)
+                const contentContainer = document.createElement('div');
+                contentContainer.className = `flex flex-col gap-1 w-full max-w-[320px] ${isMyMessage ? 'items-end' : ''}`;
+                
                 const bubble = document.createElement('div');
-                bubble.className = 'message-bubble';
-                bubble.classList.add(isMyMessage ? 'my-message' : 'other-message');
+                bubble.className = `message-bubble ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
                 
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
@@ -357,16 +373,18 @@
 
                 const textElement = document.createElement('p');
                 textElement.textContent = message.text;
+                bubble.appendChild(textElement);
                 
                 const timeElement = document.createElement('div');
                 timeElement.className = 'text-xs mt-1 time-text text-right';
                 timeElement.textContent = formatTime(messageDate);
-
-                bubble.appendChild(textElement);
                 bubble.appendChild(timeElement);
                 
-                messageWrapper.appendChild(bubble);
-                messageList.appendChild(messageWrapper);
+                contentContainer.appendChild(bubble);
+
+                messageContainer.appendChild(avatarImg);
+                messageContainer.appendChild(contentContainer);
+                messageList.appendChild(messageContainer);
             }
             messageList.scrollTop = messageList.scrollHeight;
         };
@@ -377,36 +395,17 @@
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${roomId}/messages`;
             const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
             
-            let isInitialLoad = true;
-
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === 'added') {
                         const message = change.doc.data();
-                        
-                        if (isInitialLoad) {
-                            addMessageToDOM(message); // Add existing messages without notification
-                        } else {
-                             // Only process messages newer than the join time
-                            if (message.timestamp && message.timestamp.toMillis() > new Date().getTime() - 10000) {
-                                addMessageToDOM(message);
-                                if (document.hidden && message.senderId !== userId && message.type === 'user') {
-                                    showNotification(`Nouveau message de ${message.pseudo}`, message.text);
-                                }
-                            } else if (!message.timestamp) { // Handle optimistic messages without a server timestamp yet
-                                 addMessageToDOM(message);
-                            } else { // Handle old messages arriving late
-                                addMessageToDOM(message);
-                            }
+                        addMessageToDOM(message);
+                        if (!isInitialLoad && message.type === 'user' && message.senderId !== userId) {
+                            showNotification(`Nouveau message de ${message.pseudo}`, message.text);
                         }
                     }
                 });
-                
-                // Once the initial batch is processed, set the flag to false
-                if(isInitialLoad && snapshot.docChanges().length > 0){
-                   isInitialLoad = false;
-                }
-                
+                isInitialLoad = false;
             }, (error) => {
                 console.error("Error listening for messages:", error);
                 messageList.innerHTML = '<div class="text-center text-red-500">Erreur de chargement des messages.</div>'
@@ -430,16 +429,6 @@
         const sendMessage = async (text) => {
             if (!text.trim() || !chatRoomId) return;
             
-            const tempMessage = {
-                text: text,
-                type: 'user',
-                senderId: userId,
-                pseudo: userPseudo,
-                timestamp: new Date()
-            };
-            // The onSnapshot listener with {includeMetadataChanges: true} would handle this,
-            // but for simplicity, we'll rely on the server's quick response.
-            // addMessageToDOM(tempMessage); // Removed for cleaner logic
             messageInput.value = '';
 
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
@@ -449,12 +438,13 @@
                     type: 'user',
                     senderId: userId,
                     pseudo: userPseudo,
+                    pfp: userPFP || '',
                     timestamp: serverTimestamp()
                 });
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
-                messageInput.value = text; // Restore message on failure
+                messageInput.value = text;
             }
         };
 
@@ -463,8 +453,9 @@
             e.preventDefault();
             const roomId = roomInput.value.trim();
             const pseudo = pseudoInput.value.trim();
+            const pfpUrl = pfpInput.value.trim();
             if (roomId && pseudo) {
-                joinChat(roomId, pseudo);
+                joinChat(roomId, pseudo, pfpUrl);
             }
         });
 
