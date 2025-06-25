@@ -90,7 +90,22 @@
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const firebaseConfig = {
+
+  apiKey: "AIzaSyCGqkglI2W6AMTgYyQ6yhHaDUiAffCapuA",
+
+  authDomain: "chat-par-numero.firebaseapp.com",
+
+  projectId: "chat-par-numero",
+
+  storageBucket: "chat-par-numero.firebasestorage.app",
+
+  messagingSenderId: "1083907008810",
+
+  appId: "1:1083907008810:web:93b60cc61df8a55decd653"
+
+};
+
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chat-app';
         
         let app, db, auth;
@@ -220,12 +235,7 @@
 
                 // Try to sign in.
                 try {
-                    const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-                    if (authToken) {
-                        await signInWithCustomToken(auth, authToken);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
+                    await signInAnonymously(auth);
                 } catch (error) {
                     console.error("Authentication failed:", error);
                      document.body.innerHTML = '<div class="text-center p-8 text-red-500">Erreur d\'authentification. Impossible de charger l\'application.</div>';
