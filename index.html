@@ -148,7 +148,7 @@
                     Rejoindre le salon
                 </button>
             </form>
-            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.3</p>
+            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.5</p>
         </div>
     </div>
 
@@ -180,6 +180,9 @@
 
         <footer class="bg-white p-4 border-t">
             <form id="chat-form" class="flex items-center gap-3">
+                 <button type="button" id="send-image-btn" class="p-3 text-gray-500 hover:text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                </button>
                 <button type="button" id="gif-btn" class="p-3 text-gray-500 hover:text-blue-600">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-film"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M21 7.5h-4"/><path d="M21 16.5h-4"/></svg>
                 </button>
@@ -192,16 +195,16 @@
     </div>
     
     <!-- GIF Modal -->
-    <div id="gif-modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div id="gif-modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center" style="background-color: rgba(0,0,0,0.6);">
         <div id="gif-modal" class="flex flex-col rounded-lg shadow-lg w-full max-w-lg max-h-[80vh]">
             <header class="bg-white dark:bg-gray-800 p-4 rounded-t-lg flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
                 <h2 class="text-lg font-bold text-primary">Rechercher un GIF</h2>
-                <button id="close-gif-modal" class="text-primary">&times;</button>
+                <button id="close-gif-modal" class="text-primary text-2xl font-bold">&times;</button>
             </header>
             <div class="bg-white dark:bg-gray-800 p-4">
                  <input type="text" id="gif-search-input" placeholder="Rechercher sur GIPHY..." class="w-full p-2 border rounded-lg">
             </div>
-            <div id="gif-results" class="p-4 grid gap-2 overflow-y-auto bg-gray-100 dark:bg-gray-900 rounded-b-lg">
+            <div id="gif-results" class="p-4 grid gap-2 overflow-y-auto bg-gray-100 dark:bg-gray-900 rounded-b-lg" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
                 <!-- GIFs go here -->
             </div>
         </div>
@@ -258,6 +261,7 @@
         const typingIndicator = document.getElementById('typing-indicator');
         const sunIcon = document.getElementById('theme-icon-sun');
         const moonIcon = document.getElementById('theme-icon-moon');
+        const sendImageBtn = document.getElementById('send-image-btn');
         const gifBtn = document.getElementById('gif-btn');
         const gifModalOverlay = document.getElementById('gif-modal-overlay');
         const closeGifModalBtn = document.getElementById('close-gif-modal');
@@ -296,23 +300,22 @@
         };
         
         loadInitialTheme();
-        
+
         // --- GIPHY API Functions ---
-        const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65'; // Clé publique de test, à remplacer
+        const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65'; // Public Beta Key. Replace with your own.
         let giphySearchTimeout;
 
         const fetchGifs = async (query) => {
-            if (query.length < 2) {
-                gifResultsContainer.innerHTML = '<p class="text-secondary text-center">Tapez pour rechercher un GIF.</p>';
-                return;
-            }
-            const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=24&rating=g`;
+            const endpoint = query ? 'search' : 'trending';
+            const searchQuery = query ? `&q=${encodeURIComponent(query)}` : '';
+            const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_API_KEY}${searchQuery}&limit=24&rating=g`;
+            
             try {
                 const response = await fetch(url);
                 const data = await response.json();
                 displayGifs(data.data);
             } catch (error) {
-                console.error("Erreur GIPHY:", error);
+                console.error("GIPHY API Error:", error);
                 gifResultsContainer.innerHTML = '<p class="text-red-500 text-center">Erreur de chargement des GIFs.</p>';
             }
         };
@@ -331,7 +334,6 @@
                 img.addEventListener('click', () => {
                     sendMessage(gif.images.original.url, 'image');
                     gifModalOverlay.classList.add('hidden');
-                    gifModalOverlay.classList.remove('flex');
                 });
                 gifResultsContainer.appendChild(img);
             });
@@ -453,28 +455,23 @@
                 messageList.appendChild(systemMessageDiv);
             } else {
                 const isMyMessage = message.senderId === userId;
-                
                 const row = document.createElement('div');
                 row.className = `w-full flex items-end gap-2.5 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
-
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
                 const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(message.pseudo || 'A').charAt(0).toUpperCase()}`;
                 avatarImg.src = isMyMessage ? (userPFP || defaultAvatar) : (message.pfp || defaultAvatar);
                 avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
                 avatarImg.alt = message.pseudo;
-
                 const bubble = document.createElement('div');
                 const isImage = message.messageType === 'image';
                 bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'} ${isImage ? 'image-bubble' : ''}`;
-                
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
                     pseudoElement.className = 'text-xs font-bold mb-1 pseudo-text';
                     pseudoElement.textContent = message.pseudo || 'Anonyme';
                     bubble.appendChild(pseudoElement);
                 }
-                
                 if (isImage) {
                     const link = document.createElement('a');
                     link.href = message.text;
@@ -490,12 +487,10 @@
                     textElement.textContent = message.text;
                     bubble.appendChild(textElement);
                 }
-                
                 const timeElement = document.createElement('div');
                 timeElement.className = 'text-xs mt-1 time-text text-right w-full';
                 timeElement.textContent = formatTime(messageDate);
                 bubble.appendChild(timeElement);
-                
                 if (isMyMessage) {
                     row.appendChild(bubble);
                     row.appendChild(avatarImg);
@@ -503,7 +498,6 @@
                     row.appendChild(avatarImg);
                     row.appendChild(bubble);
                 }
-                
                 messageList.appendChild(row);
             }
             messageList.scrollTop = messageList.scrollHeight;
@@ -528,7 +522,7 @@
                             const message = change.doc.data();
                             addMessageToDOM(message);
                             if (message.type === 'user' && message.senderId !== userId) {
-                                const notifBody = message.messageType === 'image' ? `${message.pseudo} a envoyé un GIF.` : message.text;
+                                const notifBody = message.messageType === 'image' ? `${message.pseudo} a envoyé une image.` : message.text;
                                 showNotification(`Nouveau message de ${message.pseudo}`, notifBody);
                             }
                         }
@@ -552,19 +546,16 @@
 
         const sendMessage = async (text, type = 'text') => {
             if (!text.trim() || !chatRoomId) return;
-            
             const originalText = text;
             if (type === 'text') {
                 messageInput.value = '';
             }
-
             try {
                 await updateTypingStatus(false);
                 clearTimeout(typingTimeout);
             } catch(e) {
                 console.warn("Could not update typing status, but sending message anyway.", e);
             }
-
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
                 await addDoc(collection(db, messagesCollectionPath), { text: originalText, type: 'user', messageType: type, senderId: userId, pseudo: userPseudo, pfp: userPFP || '', timestamp: serverTimestamp() });
@@ -595,30 +586,27 @@
         
         leaveButton.addEventListener('click', leaveChat);
 
-        messageInput.addEventListener('input', () => {
-            clearTimeout(typingTimeout);
-            updateTypingStatus(true);
-            typingTimeout = setTimeout(() => {
-                updateTypingStatus(false);
-            }, 3000);
+        sendImageBtn.addEventListener('click', () => {
+            const imageUrl = prompt("Veuillez entrer l'URL de l'image :");
+            if (imageUrl) {
+                sendMessage(imageUrl, 'image');
+            }
         });
 
         gifBtn.addEventListener('click', () => {
             gifModalOverlay.classList.remove('hidden');
             gifModalOverlay.classList.add('flex');
             gifSearchInput.focus();
-            fetchGifs('trending');
+            fetchGifs(''); // Fetch trending on open
         });
 
         closeGifModalBtn.addEventListener('click', () => {
              gifModalOverlay.classList.add('hidden');
-             gifModalOverlay.classList.remove('flex');
         });
         
         gifModalOverlay.addEventListener('click', (e) => {
             if (e.target === gifModalOverlay) {
                 gifModalOverlay.classList.add('hidden');
-                gifModalOverlay.classList.remove('flex');
             }
         });
 
@@ -626,10 +614,17 @@
             clearTimeout(giphySearchTimeout);
             giphySearchTimeout = setTimeout(() => {
                  fetchGifs(e.target.value);
-            }, 500); // Debounce
+            }, 300); // Debounce
         });
 
-
+        messageInput.addEventListener('input', () => {
+            clearTimeout(typingTimeout);
+            updateTypingStatus(true);
+            typingTimeout = setTimeout(() => {
+                updateTypingStatus(false);
+            }, 3000);
+        });
+        
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
