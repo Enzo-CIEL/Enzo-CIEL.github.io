@@ -151,7 +151,7 @@
              <button id="who-is-online-btn" class="w-full mt-4 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                 Qui est en ligne ?
             </button>
-            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.6</p>
+            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.7</p>
         </div>
     </div>
 
@@ -238,7 +238,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
         const firebaseConfig = {
@@ -320,7 +320,7 @@
         });
         const loadInitialTheme = () => {
             const savedTheme = localStorage.getItem('theme');
-            applyTheme(savedTheme || 'light');
+            applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
         };
         loadInitialTheme();
 
@@ -437,6 +437,17 @@
         
         // --- Core Functions ---
         const joinChat = async (roomId, pseudo, pfpUrl) => {
+            const presenceDocRef = doc(db, `/artifacts/${appId}/public/data/roomParticipants`, roomId);
+            const docSnap = await getDoc(presenceDocRef);
+            if (docSnap.exists()) {
+                const participants = docSnap.data().participants || {};
+                const pseudoExists = Object.values(participants).some(p => p.pseudo.toLowerCase() === pseudo.toLowerCase());
+                if (pseudoExists) {
+                    alert("Ce pseudo est déjà utilisé dans ce salon. Veuillez en choisir un autre.");
+                    return;
+                }
+            }
+
             chatRoomId = roomId; userPseudo = pseudo; userPFP = pfpUrl;
             lastMessageDate = null; messageList.innerHTML = ''; isInitialLoad = true;
             await requestNotificationPermission();
