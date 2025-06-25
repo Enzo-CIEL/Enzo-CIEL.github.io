@@ -9,19 +9,64 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-main: #f0f2f5;
+            --bg-secondary: #ffffff;
+            --text-primary: #050505;
+            --text-secondary: #6b7280;
+            --border-color: #e2e8f0;
+            --my-message-bg: #0084ff;
+            --my-message-text: #ffffff;
+            --other-message-bg: #e4e6eb;
+            --other-message-text: #050505;
+            --system-message-text: #6b7280;
+            --date-separator-bg: #e5e7eb;
+            --date-separator-text: #4b5563;
+        }
+
+        html.dark {
+            --bg-main: #18191a;
+            --bg-secondary: #242526;
+            --text-primary: #e4e6eb;
+            --text-secondary: #b0b3b8;
+            --border-color: #3a3b3c;
+            --my-message-bg: #2d88ff;
+            --my-message-text: #ffffff;
+            --other-message-bg: #3a3b3c;
+            --other-message-text: #e4e6eb;
+            --system-message-text: #b0b3b8;
+            --date-separator-bg: #3a3b3c;
+            --date-separator-text: #e4e6eb;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f0f2f5;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
         }
-        #chat-screen {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+        
+        #login-screen .bg-white, #chat-screen header, #chat-screen footer {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
         }
-        #message-list {
-            flex-grow: 1;
-            overflow-y: auto;
+        #login-screen h1, #chat-screen h1, #pseudo-display {
+             color: var(--text-primary);
         }
+         #login-screen p {
+             color: var(--text-secondary);
+        }
+        #room-display {
+             color: #2563eb;
+        }
+         html.dark #room-display {
+             color: #60a5fa;
+         }
+        #login-screen input, #message-input {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+        }
+
         .message-bubble {
             max-width: 70%;
             padding: 0.75rem 1rem;
@@ -29,36 +74,59 @@
             word-wrap: break-word;
         }
         .my-message {
-            background-color: #0084ff;
-            color: white;
+            background-color: var(--my-message-bg);
+            color: var(--my-message-text);
             align-self: flex-end;
             border-bottom-right-radius: 0.25rem;
         }
         .other-message {
-            background-color: #e4e6eb;
-            color: #050505;
+            background-color: var(--other-message-bg);
+            color: var(--other-message-text);
             align-self: flex-start;
             border-bottom-left-radius: 0.25rem;
         }
-        .system-message {
+        .system-message, .date-separator {
             text-align: center;
             font-size: 0.875rem;
-            color: #6b7280;
-            font-style: italic;
             width: 100%;
+        }
+        .system-message {
+             color: var(--system-message-text);
+             font-style: italic;
+        }
+        .date-separator {
+            font-weight: 600;
+            background-color: var(--date-separator-bg);
+            color: var(--date-separator-text);
+            padding: 2px 8px;
+            border-radius: 9999px;
+            width: fit-content;
+            margin: 0.5rem auto;
+        }
+        .other-message .pseudo-text {
+            color: var(--text-secondary);
+        }
+        .time-text {
+             opacity: 0.75;
+        }
+        .my-message .time-text {
+             color: var(--my-message-text);
+        }
+         .other-message .time-text {
+             color: var(--text-secondary);
         }
     </style>
 </head>
 <body>
 
     <!-- Login Screen -->
-    <div id="login-screen" class="flex items-center justify-center h-screen">
+    <div id="login-screen" class="flex items-center justify-center h-screen" style="background-color: var(--bg-main);">
         <div class="bg-white p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
             <h1 class="text-2xl font-bold mb-2">Bienvenue !</h1>
             <p class="text-gray-600 mb-6">Choisissez un pseudo et un numéro de salon.</p>
             <form id="login-form">
-                <input type="text" id="pseudo-input" placeholder="Votre pseudo" class="w-full p-3 border border-gray-300 rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500" required>
-                <input type="number" id="room-number-input" placeholder="Numéro du salon (ex: 12345)" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
+                <input type="text" id="pseudo-input" placeholder="Votre pseudo" class="w-full p-3 border rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500" required>
+                <input type="number" id="room-number-input" placeholder="Numéro du salon (ex: 12345)" class="w-full p-3 border rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
                     Rejoindre le salon
                 </button>
@@ -67,24 +135,30 @@
     </div>
 
     <!-- Chat Screen (hidden by default) -->
-    <div id="chat-screen" class="hidden">
-        <header class="bg-white border-b border-gray-200 p-4 shadow-sm">
+    <div id="chat-screen" class="hidden flex flex-col h-screen" style="background-color: var(--bg-main);">
+        <header class="bg-white border-b p-4 shadow-sm">
             <div class="container mx-auto flex justify-between items-center">
                 <div>
-                    <h1 class="font-bold text-lg">Salon: <span id="room-display" class="text-blue-600"></span></h1>
-                    <p class="text-xs text-gray-500">Connecté en tant que: <span id="pseudo-display" class="font-semibold"></span></p>
+                    <h1 class="font-bold text-lg">Salon: <span id="room-display"></span></h1>
+                    <p class="text-xs text-secondary">Connecté en tant que: <span id="pseudo-display" class="font-semibold"></span></p>
                 </div>
-                <button id="leave-button" class="bg-red-500 text-white text-xs font-semibold py-1 px-3 rounded-lg hover:bg-red-600">Quitter</button>
+                <div class="flex items-center gap-4">
+                    <button id="theme-toggle" class="p-2 rounded-full text-primary hover:bg-gray-200 dark:hover:bg-gray-700">
+                        <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+                        <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon hidden"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+                    </button>
+                    <button id="leave-button" class="bg-red-500 text-white text-xs font-semibold py-1 px-3 rounded-lg hover:bg-red-600">Quitter</button>
+                </div>
             </div>
         </header>
         
-        <main id="message-list" class="p-4 flex flex-col gap-4">
+        <main id="message-list" class="flex-grow overflow-y-auto p-4 flex flex-col gap-4">
             <!-- Messages will be appended here -->
         </main>
         
-        <footer class="bg-white p-4 border-t border-gray-200">
+        <footer class="bg-white p-4 border-t">
             <form id="chat-form" class="flex items-center gap-3">
-                <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
                 <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
@@ -98,7 +172,7 @@
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
-       const firebaseConfig = {
+        const firebaseConfig = {
 
   apiKey: "AIzaSyCGqkglI2W6AMTgYyQ6yhHaDUiAffCapuA",
 
@@ -119,6 +193,7 @@
         let app, db, auth;
         let userId, userPseudo, chatRoomId;
         let unsubscribeMessages = null;
+        let lastMessageDate = null;
 
         try {
             app = initializeApp(firebaseConfig);
@@ -141,15 +216,64 @@
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const leaveButton = document.getElementById('leave-button');
+        const themeToggleButton = document.getElementById('theme-toggle');
+        const sunIcon = document.getElementById('theme-icon-sun');
+        const moonIcon = document.getElementById('theme-icon-moon');
 
+        // --- Theme Management ---
+        const applyTheme = (theme) => {
+            if (theme === 'dark') {
+                document.documentElement.classList.add('dark');
+                sunIcon.classList.add('hidden');
+                moonIcon.classList.remove('hidden');
+            } else {
+                document.documentElement.classList.remove('dark');
+                sunIcon.classList.remove('hidden');
+                moonIcon.classList.add('hidden');
+            }
+        };
+
+        themeToggleButton.addEventListener('click', () => {
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
+        
+        const loadInitialTheme = () => {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                applyTheme(savedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                applyTheme('dark');
+            } else {
+                applyTheme('light');
+            }
+        };
+        
+        loadInitialTheme();
+
+        // --- Helper Functions ---
+        const formatTime = (date) => {
+            if (!date) return '';
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        };
+
+        const formatDate = (date) => {
+            if (!date) return '';
+            return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        };
+        
         // --- Core Functions ---
         const joinChat = async (roomId, pseudo) => {
             chatRoomId = roomId;
             userPseudo = pseudo;
+            lastMessageDate = null;
 
             loginScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
-            chatScreen.classList.add('flex');
             
             roomDisplay.textContent = chatRoomId;
             pseudoDisplay.textContent = userPseudo;
@@ -170,17 +294,30 @@
             userPseudo = null;
             messageList.innerHTML = '';
             chatScreen.classList.add('hidden');
-            chatScreen.classList.remove('flex');
             loginScreen.classList.remove('hidden');
             roomInput.value = '';
             pseudoInput.value = '';
         }
 
         const addMessageToDOM = (message) => {
+            const messageDate = message.timestamp ? message.timestamp.toDate() : null;
+
+            if (messageDate) {
+                const messageDateString = messageDate.toDateString();
+                if (messageDateString !== lastMessageDate) {
+                    const dateSeparator = document.createElement('div');
+                    dateSeparator.className = 'date-separator';
+                    dateSeparator.textContent = formatDate(messageDate);
+                    messageList.appendChild(dateSeparator);
+                    lastMessageDate = messageDateString;
+                }
+            }
+            
             if (message.type === 'system') {
                 const systemMessageDiv = document.createElement('div');
                 systemMessageDiv.className = 'system-message';
-                systemMessageDiv.textContent = message.text;
+                const time = messageDate ? `[${formatTime(messageDate)}] ` : '';
+                systemMessageDiv.textContent = `${time}${message.text}`;
                 messageList.appendChild(systemMessageDiv);
             } else {
                 const isMyMessage = message.senderId === userId;
@@ -193,15 +330,21 @@
                 
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
-                    pseudoElement.className = 'text-xs font-bold mb-1 text-gray-500';
+                    pseudoElement.className = 'text-xs font-bold mb-1 pseudo-text';
                     pseudoElement.textContent = message.pseudo || 'Anonyme';
                     bubble.appendChild(pseudoElement);
                 }
 
-                const textElement = document.createElement('div');
+                const textElement = document.createElement('p');
                 textElement.textContent = message.text;
-                bubble.appendChild(textElement);
+                
+                const timeElement = document.createElement('div');
+                timeElement.className = 'text-xs mt-1 time-text text-right';
+                timeElement.textContent = formatTime(messageDate);
 
+                bubble.appendChild(textElement);
+                bubble.appendChild(timeElement);
+                
                 messageWrapper.appendChild(bubble);
                 messageList.appendChild(messageWrapper);
             }
@@ -215,6 +358,7 @@
             const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
 
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                lastMessageDate = null;
                 messageList.innerHTML = ''; 
                 snapshot.forEach((doc) => {
                     addMessageToDOM(doc.data());
