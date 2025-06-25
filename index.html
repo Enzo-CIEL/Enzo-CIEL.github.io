@@ -345,25 +345,24 @@
                 messageList.appendChild(systemMessageDiv);
             } else {
                 const isMyMessage = message.senderId === userId;
-                const messageContainer = document.createElement('div');
-                messageContainer.className = `w-full flex items-start gap-2.5 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
                 
+                // The main container for a single row (avatar + bubble)
+                const messageRow = document.createElement('div');
+                messageRow.className = `flex items-start gap-2.5`;
+
+                // The container that handles left/right alignment
+                const rowAligner = document.createElement('div');
+                rowAligner.className = `w-full flex ${isMyMessage ? 'justify-end' : 'justify-start'}`;
+
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
-                if(!isMyMessage) {
-                    messageContainer.appendChild(avatarImg);
-                }
-
                 const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(message.pseudo || 'A').charAt(0).toUpperCase()}`;
-                avatarImg.src = message.pfp || defaultAvatar;
+                avatarImg.src = isMyMessage ? (userPFP || defaultAvatar) : (message.pfp || defaultAvatar);
                 avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
                 avatarImg.alt = message.pseudo;
                 
-                const contentContainer = document.createElement('div');
-                contentContainer.className = `flex flex-col gap-1 max-w-[320px]`;
-                
                 const bubble = document.createElement('div');
-                bubble.className = `message-bubble ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
+                bubble.className = `message-bubble max-w-[320px] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
                 
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
@@ -380,15 +379,17 @@
                 timeElement.className = 'text-xs mt-1 time-text text-right w-full';
                 timeElement.textContent = formatTime(messageDate);
                 bubble.appendChild(timeElement);
-                
-                contentContainer.appendChild(bubble);
-                messageContainer.appendChild(contentContainer);
 
-                if(isMyMessage){
-                    messageContainer.appendChild(avatarImg);
+                if (isMyMessage) {
+                    messageRow.appendChild(bubble);
+                    messageRow.appendChild(avatarImg);
+                } else {
+                    messageRow.appendChild(avatarImg);
+                    messageRow.appendChild(bubble);
                 }
-
-                messageList.appendChild(messageContainer);
+                
+                rowAligner.appendChild(messageRow);
+                messageList.appendChild(rowAligner);
             }
             messageList.scrollTop = messageList.scrollHeight;
         };
