@@ -40,6 +40,13 @@
             align-self: flex-start;
             border-bottom-left-radius: 0.25rem;
         }
+        .system-message {
+            text-align: center;
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-style: italic;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -48,9 +55,10 @@
     <div id="login-screen" class="flex items-center justify-center h-screen">
         <div class="bg-white p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
             <h1 class="text-2xl font-bold mb-2">Bienvenue !</h1>
-            <p class="text-gray-600 mb-6">Entrez un numéro de salon pour discuter.</p>
+            <p class="text-gray-600 mb-6">Choisissez un pseudo et un numéro de salon.</p>
             <form id="login-form">
-                <input type="number" id="room-number-input" placeholder="Ex: 12345" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
+                <input type="text" id="pseudo-input" placeholder="Votre pseudo" class="w-full p-3 border border-gray-300 rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500" required>
+                <input type="number" id="room-number-input" placeholder="Numéro du salon (ex: 12345)" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
                     Rejoindre le salon
                 </button>
@@ -64,13 +72,13 @@
             <div class="container mx-auto flex justify-between items-center">
                 <div>
                     <h1 class="font-bold text-lg">Salon: <span id="room-display" class="text-blue-600"></span></h1>
-                    <p class="text-xs text-gray-500">Mon ID: <span id="user-id-display" class="font-mono"></span></p>
+                    <p class="text-xs text-gray-500">Connecté en tant que: <span id="pseudo-display" class="font-semibold"></span></p>
                 </div>
                 <button id="leave-button" class="bg-red-500 text-white text-xs font-semibold py-1 px-3 rounded-lg hover:bg-red-600">Quitter</button>
             </div>
         </header>
         
-        <main id="message-list" class="p-4 flex flex-col gap-3">
+        <main id="message-list" class="p-4 flex flex-col gap-4">
             <!-- Messages will be appended here -->
         </main>
         
@@ -78,7 +86,7 @@
             <form id="chat-form" class="flex items-center gap-3">
                 <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
                 <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
             </form>
         </footer>
@@ -90,7 +98,7 @@
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
-        const firebaseConfig = {
+       const firebaseConfig = {
 
   apiKey: "AIzaSyCGqkglI2W6AMTgYyQ6yhHaDUiAffCapuA",
 
@@ -109,7 +117,7 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chat-app';
         
         let app, db, auth;
-        let userId, chatRoomId;
+        let userId, userPseudo, chatRoomId;
         let unsubscribeMessages = null;
 
         try {
@@ -121,64 +129,93 @@
             document.body.innerHTML = '<div class="text-center p-8 text-red-500">Erreur de configuration Firebase. Impossible de charger l\'application.</div>';
         }
 
-
         // --- UI Elements ---
         const loginScreen = document.getElementById('login-screen');
         const chatScreen = document.getElementById('chat-screen');
         const loginForm = document.getElementById('login-form');
+        const pseudoInput = document.getElementById('pseudo-input');
         const roomInput = document.getElementById('room-number-input');
         const roomDisplay = document.getElementById('room-display');
-        const userIdDisplay = document.getElementById('user-id-display');
+        const pseudoDisplay = document.getElementById('pseudo-display');
         const messageList = document.getElementById('message-list');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const leaveButton = document.getElementById('leave-button');
 
-
         // --- Core Functions ---
-        const joinChat = (roomId) => {
+        const joinChat = async (roomId, pseudo) => {
             chatRoomId = roomId;
+            userPseudo = pseudo;
+
             loginScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
             chatScreen.classList.add('flex');
             
             roomDisplay.textContent = chatRoomId;
-            userIdDisplay.textContent = userId.substring(0, 8) + '...';
+            pseudoDisplay.textContent = userPseudo;
 
             listenForMessages(chatRoomId);
+            await sendSystemMessage(`${userPseudo} a rejoint le salon.`);
         };
         
-        const leaveChat = () => {
+        const leaveChat = async () => {
+             if (userPseudo && chatRoomId) {
+                await sendSystemMessage(`${userPseudo} a quitté le salon.`);
+             }
              if (unsubscribeMessages) {
                 unsubscribeMessages();
                 unsubscribeMessages = null;
             }
             chatRoomId = null;
-            messageList.innerHTML = ''; // Clear messages from UI
+            userPseudo = null;
+            messageList.innerHTML = '';
             chatScreen.classList.add('hidden');
             chatScreen.classList.remove('flex');
             loginScreen.classList.remove('hidden');
             roomInput.value = '';
+            pseudoInput.value = '';
         }
 
         const addMessageToDOM = (message) => {
-            const bubble = document.createElement('div');
-            bubble.className = 'message-bubble';
-            bubble.classList.add(message.senderId === userId ? 'my-message' : 'other-message');
-            bubble.textContent = message.text;
-            messageList.appendChild(bubble);
+            if (message.type === 'system') {
+                const systemMessageDiv = document.createElement('div');
+                systemMessageDiv.className = 'system-message';
+                systemMessageDiv.textContent = message.text;
+                messageList.appendChild(systemMessageDiv);
+            } else {
+                const isMyMessage = message.senderId === userId;
+                const messageWrapper = document.createElement('div');
+                messageWrapper.className = `flex flex-col ${isMyMessage ? 'items-end' : 'items-start'}`;
+
+                const bubble = document.createElement('div');
+                bubble.className = 'message-bubble';
+                bubble.classList.add(isMyMessage ? 'my-message' : 'other-message');
+                
+                if (!isMyMessage) {
+                    const pseudoElement = document.createElement('div');
+                    pseudoElement.className = 'text-xs font-bold mb-1 text-gray-500';
+                    pseudoElement.textContent = message.pseudo || 'Anonyme';
+                    bubble.appendChild(pseudoElement);
+                }
+
+                const textElement = document.createElement('div');
+                textElement.textContent = message.text;
+                bubble.appendChild(textElement);
+
+                messageWrapper.appendChild(bubble);
+                messageList.appendChild(messageWrapper);
+            }
             messageList.scrollTop = messageList.scrollHeight;
         };
 
         const listenForMessages = (roomId) => {
-            if (unsubscribeMessages) {
-                unsubscribeMessages(); // Unsubscribe from previous listener if any
-            }
+            if (unsubscribeMessages) unsubscribeMessages(); 
+            
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${roomId}/messages`;
             const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
 
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
-                messageList.innerHTML = ''; // Clear previous messages
+                messageList.innerHTML = ''; 
                 snapshot.forEach((doc) => {
                     addMessageToDOM(doc.data());
                 });
@@ -188,6 +225,20 @@
             });
         };
         
+        const sendSystemMessage = async (text) => {
+            if (!chatRoomId) return;
+            const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
+            try {
+                await addDoc(collection(db, messagesCollectionPath), {
+                    text: text,
+                    type: 'system',
+                    timestamp: serverTimestamp()
+                });
+            } catch (error) {
+                console.error("Error sending system message: ", error);
+            }
+        };
+
         const sendMessage = async (text) => {
             if (!text.trim() || !chatRoomId) return;
 
@@ -195,7 +246,9 @@
             try {
                 await addDoc(collection(db, messagesCollectionPath), {
                     text: text,
+                    type: 'user',
                     senderId: userId,
+                    pseudo: userPseudo,
                     timestamp: serverTimestamp()
                 });
                 messageInput.value = '';
@@ -208,9 +261,10 @@
         // --- Event Listeners ---
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const roomId = roomInput.value;
-            if (roomId) {
-                joinChat(roomId);
+            const roomId = roomInput.value.trim();
+            const pseudo = pseudoInput.value.trim();
+            if (roomId && pseudo) {
+                joinChat(roomId, pseudo);
             }
         });
 
@@ -221,19 +275,14 @@
         
         leaveButton.addEventListener('click', leaveChat);
 
-
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                // User is signed in.
                 userId = user.uid;
                 loginForm.querySelector('button').disabled = false;
             } else {
-                // User is signed out.
                 userId = null;
                 loginForm.querySelector('button').disabled = true;
-
-                // Try to sign in.
                 try {
                     await signInAnonymously(auth);
                 } catch (error) {
@@ -242,7 +291,6 @@
                 }
             }
         });
-
     </script>
 </body>
 </html>
