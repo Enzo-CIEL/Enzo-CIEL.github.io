@@ -265,14 +265,22 @@
         // --- Helper Functions ---
         const formatTime = (date) => {
             if (!date) return '';
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            return `${hours}:${minutes}`;
+            return date.toLocaleTimeString('fr-FR', {
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZone: 'Europe/Paris'
+            });
         };
 
         const formatDate = (date) => {
             if (!date) return '';
-            return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            return date.toLocaleDateString('fr-FR', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                timeZone: 'Europe/Paris'
+            });
         };
         
         // --- Core Functions ---
@@ -319,7 +327,7 @@
             const messageDate = message.timestamp?.toDate();
 
             if (messageDate) {
-                const messageDateString = messageDate.toDateString();
+                const messageDateString = messageDate.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
                 if (messageDateString !== lastMessageDate) {
                     const dateSeparator = document.createElement('div');
                     dateSeparator.className = 'date-separator';
@@ -338,17 +346,21 @@
             } else {
                 const isMyMessage = message.senderId === userId;
                 const messageContainer = document.createElement('div');
-                messageContainer.className = `flex items-start gap-2.5 ${isMyMessage ? 'flex-row-reverse' : ''}`;
+                messageContainer.className = `w-full flex items-start gap-2.5 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
                 
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
+                if(!isMyMessage) {
+                    messageContainer.appendChild(avatarImg);
+                }
+
                 const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(message.pseudo || 'A').charAt(0).toUpperCase()}`;
                 avatarImg.src = message.pfp || defaultAvatar;
                 avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
                 avatarImg.alt = message.pseudo;
                 
                 const contentContainer = document.createElement('div');
-                contentContainer.className = `flex flex-col gap-1 max-w-[320px] ${isMyMessage ? 'items-end' : 'items-start'}`;
+                contentContainer.className = `flex flex-col gap-1 max-w-[320px]`;
                 
                 const bubble = document.createElement('div');
                 bubble.className = `message-bubble ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
@@ -370,9 +382,12 @@
                 bubble.appendChild(timeElement);
                 
                 contentContainer.appendChild(bubble);
-
-                messageContainer.appendChild(avatarImg);
                 messageContainer.appendChild(contentContainer);
+
+                if(isMyMessage){
+                    messageContainer.appendChild(avatarImg);
+                }
+
                 messageList.appendChild(messageContainer);
             }
             messageList.scrollTop = messageList.scrollHeight;
