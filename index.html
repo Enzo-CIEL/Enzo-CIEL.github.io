@@ -3,179 +3,236 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Discuter avec l'IA</title>
+    <title>Chat par Numéro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <!-- Chosen Palette: Clean & Modern (Slate, Sky, White) -->
-    <!-- Application Structure Plan: A classic chat interface structure. The layout is vertically split into two main areas: a message display area that takes up most of the screen height and is scrollable, and a fixed input form at the bottom. This is the most intuitive and universally understood layout for a chat application, ensuring immediate usability. -->
-    <!-- Visualization & Content Choices: 
-        - Conversation: Report Info -> User/AI messages. Goal -> Display a dialogue. Viz/Presentation -> Styled chat bubbles. Interaction -> User types and sends messages. Justification -> This is the standard and most effective way to represent a conversation. Different styling for 'user' and 'model' provides clear visual distinction. Method -> HTML/CSS/JS.
-        - Loading State: Report Info -> N/A. Goal -> Provide user feedback. Viz/Presentation -> A subtle "thinking" bubble. Interaction -> Appears automatically after user sends a message. Justification -> Manages user expectations and makes the app feel responsive even during API calls. Method -> HTML/CSS/JS.
-    -->
-    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
         }
-        #chat-container {
+        #chat-screen {
             display: flex;
             flex-direction: column;
             height: 100vh;
-            background-color: #f1f5f9; /* slate-100 */
         }
         #message-list {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 1.5rem;
         }
         .message-bubble {
-            max-width: 75%;
+            max-width: 70%;
             padding: 0.75rem 1rem;
             border-radius: 1.25rem;
-            margin-bottom: 0.75rem;
             word-wrap: break-word;
         }
-        .user-message {
-            background-color: #0284c7; /* sky-600 */
+        .my-message {
+            background-color: #0084ff;
             color: white;
             align-self: flex-end;
             border-bottom-right-radius: 0.25rem;
         }
-        .ai-message {
-            background-color: white;
-            color: #1e293b; /* slate-800 */
+        .other-message {
+            background-color: #e4e6eb;
+            color: #050505;
             align-self: flex-start;
-            border: 1px solid #e2e8f0; /* slate-200 */
             border-bottom-left-radius: 0.25rem;
-        }
-        #chat-form input:focus {
-            outline: none;
-            box-shadow: none;
-            border-color: #0284c7;
         }
     </style>
 </head>
 <body>
 
-    <div id="chat-container">
-        <!-- Message Display Area -->
-        <div id="message-list" class="flex flex-col gap-3">
-            <!-- Initial AI Message -->
-            <div class="message-bubble ai-message">
-                <p>Bonjour ! Je suis Gemini, votre assistant IA. Comment puis-je vous aider aujourd'hui ?</p>
-            </div>
-            <!-- Messages will be appended here -->
-        </div>
-
-        <!-- Typing Indicator (hidden by default) -->
-        <div id="typing-indicator" class="hidden px-6 pb-2">
-            <div class="message-bubble ai-message">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-75"></div>
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-150"></div>
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-300"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Input Form -->
-        <div id="chat-form-container" class="p-4 bg-white border-t border-slate-200">
-            <form id="chat-form" class="flex items-center gap-3">
-                <input type="text" id="message-input" placeholder="Posez votre question ici..." class="flex-grow p-3 border border-slate-300 rounded-full focus:ring-2 focus:ring-sky-500 transition-shadow duration-200" autocomplete="off">
-                <button type="submit" class="bg-sky-600 text-white p-3 rounded-full hover:bg-sky-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:bg-slate-400">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-horizontal"><path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/></svg>
+    <!-- Login Screen -->
+    <div id="login-screen" class="flex items-center justify-center h-screen">
+        <div class="bg-white p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
+            <h1 class="text-2xl font-bold mb-2">Bienvenue !</h1>
+            <p class="text-gray-600 mb-6">Entrez un numéro de salon pour discuter.</p>
+            <form id="login-form">
+                <input type="number" id="room-number-input" placeholder="Ex: 12345" class="w-full p-3 border border-gray-300 rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                    Rejoindre le salon
                 </button>
             </form>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('chat-form');
-            const input = document.getElementById('message-input');
-            const messageList = document.getElementById('message-list');
-            const typingIndicator = document.getElementById('typing-indicator');
-            const sendButton = form.querySelector('button[type="submit"]');
+    <!-- Chat Screen (hidden by default) -->
+    <div id="chat-screen" class="hidden">
+        <header class="bg-white border-b border-gray-200 p-4 shadow-sm">
+            <div class="container mx-auto flex justify-between items-center">
+                <div>
+                    <h1 class="font-bold text-lg">Salon: <span id="room-display" class="text-blue-600"></span></h1>
+                    <p class="text-xs text-gray-500">Mon ID: <span id="user-id-display" class="font-mono"></span></p>
+                </div>
+                <button id="leave-button" class="bg-red-500 text-white text-xs font-semibold py-1 px-3 rounded-lg hover:bg-red-600">Quitter</button>
+            </div>
+        </header>
+        
+        <main id="message-list" class="p-4 flex flex-col gap-3">
+            <!-- Messages will be appended here -->
+        </main>
+        
+        <footer class="bg-white p-4 border-t border-gray-200">
+            <form id="chat-form" class="flex items-center gap-3">
+                <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </form>
+        </footer>
+    </div>
 
-            let chatHistory = [{
-                role: "model",
-                parts: [{ text: "Bonjour ! Je suis Gemini, votre assistant IA. Comment puis-je vous aider aujourd'hui ?" }]
-            }];
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-            const addMessageToUI = (role, text) => {
-                const bubble = document.createElement('div');
-                bubble.className = `message-bubble ${role === 'user' ? 'user-message' : 'ai-message'}`;
-                
-                // A simple way to format basic markdown like **bold** and *italic*
-                let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-                
-                bubble.innerHTML = `<p>${formattedText.replace(/\n/g, '<br>')}</p>`;
-                
-                messageList.appendChild(bubble);
-                messageList.scrollTop = messageList.scrollHeight;
-            };
+        // --- Firebase Config and Initialization ---
+        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chat-app';
+        
+        let app, db, auth;
+        let userId, chatRoomId;
+        let unsubscribeMessages = null;
 
-            const callGeminiAPI = async (prompt) => {
-                typingIndicator.classList.remove('hidden');
-                messageList.scrollTop = messageList.scrollHeight;
-                sendButton.disabled = true;
+        try {
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            document.body.innerHTML = '<div class="text-center p-8 text-red-500">Erreur de configuration Firebase. Impossible de charger l\'application.</div>';
+        }
 
-                // Add the new user prompt to the history
-                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
-                
-                try {
-                    const apiKey = "";
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-                    
-                    const payload = {
-                        contents: chatHistory,
-                        // Optional: Add safety settings or generation config if needed
-                    };
 
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+        // --- UI Elements ---
+        const loginScreen = document.getElementById('login-screen');
+        const chatScreen = document.getElementById('chat-screen');
+        const loginForm = document.getElementById('login-form');
+        const roomInput = document.getElementById('room-number-input');
+        const roomDisplay = document.getElementById('room-display');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const messageList = document.getElementById('message-list');
+        const chatForm = document.getElementById('chat-form');
+        const messageInput = document.getElementById('message-input');
+        const leaveButton = document.getElementById('leave-button');
 
-                    if (!response.ok) {
-                        throw new Error(`API error: ${response.status} ${response.statusText}`);
-                    }
 
-                    const result = await response.json();
-
-                    let aiResponseText = "Désolé, je n'ai pas pu obtenir de réponse.";
-                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
-                        aiResponseText = result.candidates[0].content.parts[0].text;
-                    }
-
-                    // Add the AI response to history and UI
-                    chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
-                    addMessageToUI('ai', aiResponseText);
-
-                } catch (error) {
-                    console.error("Error calling Gemini API:", error);
-                    addMessageToUI('ai', "Oups, une erreur est survenue. Veuillez réessayer.");
-                } finally {
-                    typingIndicator.classList.add('hidden');
-                    sendButton.disabled = false;
-                    input.focus();
-                }
-            };
+        // --- Core Functions ---
+        const joinChat = (roomId) => {
+            chatRoomId = roomId;
+            loginScreen.classList.add('hidden');
+            chatScreen.classList.remove('hidden');
+            chatScreen.classList.add('flex');
             
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const userText = input.value.trim();
-                if (userText) {
-                    addMessageToUI('user', userText);
-                    callGeminiAPI(userText);
-                    input.value = '';
-                }
+            roomDisplay.textContent = chatRoomId;
+            userIdDisplay.textContent = userId.substring(0, 8) + '...';
+
+            listenForMessages(chatRoomId);
+        };
+        
+        const leaveChat = () => {
+             if (unsubscribeMessages) {
+                unsubscribeMessages();
+                unsubscribeMessages = null;
+            }
+            chatRoomId = null;
+            messageList.innerHTML = ''; // Clear messages from UI
+            chatScreen.classList.add('hidden');
+            chatScreen.classList.remove('flex');
+            loginScreen.classList.remove('hidden');
+            roomInput.value = '';
+        }
+
+        const addMessageToDOM = (message) => {
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.classList.add(message.senderId === userId ? 'my-message' : 'other-message');
+            bubble.textContent = message.text;
+            messageList.appendChild(bubble);
+            messageList.scrollTop = messageList.scrollHeight;
+        };
+
+        const listenForMessages = (roomId) => {
+            if (unsubscribeMessages) {
+                unsubscribeMessages(); // Unsubscribe from previous listener if any
+            }
+            const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${roomId}/messages`;
+            const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
+
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                messageList.innerHTML = ''; // Clear previous messages
+                snapshot.forEach((doc) => {
+                    addMessageToDOM(doc.data());
+                });
+            }, (error) => {
+                console.error("Error listening for messages:", error);
+                messageList.innerHTML = '<div class="text-center text-red-500">Erreur de chargement des messages.</div>'
             });
+        };
+        
+        const sendMessage = async (text) => {
+            if (!text.trim() || !chatRoomId) return;
+
+            const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
+            try {
+                await addDoc(collection(db, messagesCollectionPath), {
+                    text: text,
+                    senderId: userId,
+                    timestamp: serverTimestamp()
+                });
+                messageInput.value = '';
+            } catch (error) {
+                console.error("Error sending message: ", error);
+                alert("Erreur lors de l'envoi du message.");
+            }
+        };
+
+        // --- Event Listeners ---
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const roomId = roomInput.value;
+            if (roomId) {
+                joinChat(roomId);
+            }
         });
+
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessage(messageInput.value);
+        });
+        
+        leaveButton.addEventListener('click', leaveChat);
+
+
+        // --- Authentication ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // User is signed in.
+                userId = user.uid;
+                loginForm.querySelector('button').disabled = false;
+            } else {
+                // User is signed out.
+                userId = null;
+                loginForm.querySelector('button').disabled = true;
+
+                // Try to sign in.
+                try {
+                    const authToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                    if (authToken) {
+                        await signInWithCustomToken(auth, authToken);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Authentication failed:", error);
+                     document.body.innerHTML = '<div class="text-center p-8 text-red-500">Erreur d\'authentification. Impossible de charger l\'application.</div>';
+                }
+            }
+        });
+
     </script>
 </body>
 </html>
