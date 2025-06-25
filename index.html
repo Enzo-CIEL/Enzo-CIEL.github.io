@@ -104,6 +104,7 @@
             color: var(--text-secondary);
         }
         .time-text {
+             font-size: 0.75rem;
              opacity: 0.75;
         }
         .my-message-bubble .time-text {
@@ -346,13 +347,8 @@
             } else {
                 const isMyMessage = message.senderId === userId;
                 
-                // The main container for a single row (avatar + bubble)
-                const messageRow = document.createElement('div');
-                messageRow.className = `flex items-start gap-2.5`;
-
-                // The container that handles left/right alignment
-                const rowAligner = document.createElement('div');
-                rowAligner.className = `w-full flex ${isMyMessage ? 'justify-end' : 'justify-start'}`;
+                const row = document.createElement('div');
+                row.className = `w-full flex items-end gap-2.5 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
 
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
@@ -360,9 +356,9 @@
                 avatarImg.src = isMyMessage ? (userPFP || defaultAvatar) : (message.pfp || defaultAvatar);
                 avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
                 avatarImg.alt = message.pseudo;
-                
+
                 const bubble = document.createElement('div');
-                bubble.className = `message-bubble max-w-[320px] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
+                bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
                 
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
@@ -379,17 +375,16 @@
                 timeElement.className = 'text-xs mt-1 time-text text-right w-full';
                 timeElement.textContent = formatTime(messageDate);
                 bubble.appendChild(timeElement);
-
+                
                 if (isMyMessage) {
-                    messageRow.appendChild(bubble);
-                    messageRow.appendChild(avatarImg);
+                    row.appendChild(bubble);
+                    row.appendChild(avatarImg);
                 } else {
-                    messageRow.appendChild(avatarImg);
-                    messageRow.appendChild(bubble);
+                    row.appendChild(avatarImg);
+                    row.appendChild(bubble);
                 }
                 
-                rowAligner.appendChild(messageRow);
-                messageList.appendChild(rowAligner);
+                messageList.appendChild(row);
             }
             messageList.scrollTop = messageList.scrollHeight;
         };
