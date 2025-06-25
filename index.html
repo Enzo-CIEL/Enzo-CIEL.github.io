@@ -154,7 +154,7 @@
             <div class="mt-4 text-center">
                 <a href="#" id="admin-login-link" class="text-sm text-blue-600 hover:underline">Connexion Admin</a>
             </div>
-            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.8</p>
+            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.9</p>
         </div>
     </div>
 
@@ -449,7 +449,7 @@
                 const participants = data ? data.participants : {};
                 
                 if (userId && !participants[userId] && chatRoomId) {
-                    alert('Vous avez été expulsé du salon.');
+                    alert("Vous avez été déconnecté du salon par un administrateur. Vous pouvez rejoindre à nouveau.");
                     leaveChat();
                     return;
                 }
@@ -668,7 +668,7 @@
         });
         chatForm.addEventListener('submit', (e) => { e.preventDefault(); sendMessage(messageInput.value); });
         leaveButton.addEventListener('click', leaveChat);
-        window.addEventListener('beforeunload', () => updatePresence(false));
+        window.addEventListener('beforeunload', () => { if(chatRoomId) updatePresence(false) });
         sendImageBtn.addEventListener('click', () => {
             const imageUrl = prompt("Veuillez entrer l'URL de l'image :");
             if (imageUrl) { sendMessage(imageUrl, 'image'); }
