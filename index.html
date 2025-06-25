@@ -300,7 +300,7 @@
         }
 
         const addMessageToDOM = (message) => {
-            const messageDate = message.timestamp ? message.timestamp.toDate() : null;
+            const messageDate = message.timestamp?.toDate ? message.timestamp.toDate() : message.timestamp;
 
             if (messageDate) {
                 const messageDateString = messageDate.toDateString();
@@ -386,6 +386,18 @@
         const sendMessage = async (text) => {
             if (!text.trim() || !chatRoomId) return;
 
+            // Optimistic UI update
+            const optimisticMessage = {
+                text: text,
+                type: 'user',
+                senderId: userId,
+                pseudo: userPseudo,
+                timestamp: new Date() // Use local time for instant display
+            };
+            addMessageToDOM(optimisticMessage);
+            messageInput.value = '';
+
+            // Send to Firestore
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
                 await addDoc(collection(db, messagesCollectionPath), {
@@ -393,12 +405,12 @@
                     type: 'user',
                     senderId: userId,
                     pseudo: userPseudo,
-                    timestamp: serverTimestamp()
+                    timestamp: serverTimestamp() // Use server time for consistency
                 });
-                messageInput.value = '';
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
+                // Note: might want to add logic to remove optimistic message on failure
             }
         };
 
