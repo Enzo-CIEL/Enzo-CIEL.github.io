@@ -82,6 +82,13 @@
             color: var(--other-message-text);
             border-bottom-left-radius: 0.25rem;
         }
+        .image-bubble {
+            padding: 0.25rem;
+        }
+        .image-bubble img {
+            border-radius: 1rem;
+            max-height: 200px;
+        }
         .system-message, .date-separator {
             text-align: center;
             font-size: 0.875rem;
@@ -157,6 +164,9 @@
         
         <footer class="bg-white p-4 border-t">
             <form id="chat-form" class="flex items-center gap-3">
+                 <button type="button" id="send-image-btn" class="p-3 text-gray-500 hover:text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                </button>
                 <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
                 <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
@@ -210,6 +220,7 @@
         const messageInput = document.getElementById('message-input');
         const leaveButton = document.getElementById('leave-button');
         const themeToggleButton = document.getElementById('theme-toggle');
+        const sendImageBtn = document.getElementById('send-image-btn');
         const sunIcon = document.getElementById('theme-icon-sun');
         const moonIcon = document.getElementById('theme-icon-moon');
 
@@ -358,7 +369,8 @@
                 avatarImg.alt = message.pseudo;
 
                 const bubble = document.createElement('div');
-                bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
+                const isImage = message.messageType === 'image';
+                bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'} ${isImage ? 'image-bubble' : ''}`;
                 
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
@@ -366,10 +378,22 @@
                     pseudoElement.textContent = message.pseudo || 'Anonyme';
                     bubble.appendChild(pseudoElement);
                 }
-
-                const textElement = document.createElement('p');
-                textElement.textContent = message.text;
-                bubble.appendChild(textElement);
+                
+                if (isImage) {
+                    const link = document.createElement('a');
+                    link.href = message.text;
+                    link.target = '_blank';
+                    const img = document.createElement('img');
+                    img.src = message.text;
+                    img.alt = "Image envoyée";
+                    img.className = 'max-w-full h-auto rounded-lg';
+                    link.appendChild(img);
+                    bubble.appendChild(link);
+                } else {
+                    const textElement = document.createElement('p');
+                    textElement.textContent = message.text;
+                    bubble.appendChild(textElement);
+                }
                 
                 const timeElement = document.createElement('div');
                 timeElement.className = 'text-xs mt-1 time-text text-right w-full';
@@ -410,7 +434,8 @@
                             const message = change.doc.data();
                             addMessageToDOM(message);
                             if (message.type === 'user' && message.senderId !== userId) {
-                                showNotification(`Nouveau message de ${message.pseudo}`, message.text);
+                                const notifBody = message.messageType === 'image' ? 'a envoyé une image.' : message.text;
+                                showNotification(`Nouveau message de ${message.pseudo}`, notifBody);
                             }
                         }
                     });
@@ -435,16 +460,19 @@
             }
         };
 
-        const sendMessage = async (text) => {
+        const sendMessage = async (text, type = 'text') => {
             if (!text.trim() || !chatRoomId) return;
             
-            messageInput.value = '';
+            if (type === 'text') {
+                messageInput.value = '';
+            }
 
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
                 await addDoc(collection(db, messagesCollectionPath), {
                     text: text,
                     type: 'user',
+                    messageType: type,
                     senderId: userId,
                     pseudo: userPseudo,
                     pfp: userPFP || '',
@@ -453,7 +481,9 @@
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
-                messageInput.value = text;
+                if (type === 'text') {
+                    messageInput.value = text;
+                }
             }
         };
 
@@ -470,7 +500,14 @@
 
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            sendMessage(messageInput.value);
+            sendMessage(messageInput.value, 'text');
+        });
+
+        sendImageBtn.addEventListener('click', () => {
+            const imageUrl = prompt("Veuillez entrer l'URL de l'image :");
+            if (imageUrl) {
+                sendMessage(imageUrl, 'image');
+            }
         });
         
         leaveButton.addEventListener('click', leaveChat);
