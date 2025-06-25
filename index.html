@@ -45,14 +45,18 @@
             color: var(--text-primary);
         }
         
-        #login-screen .bg-white, #chat-screen header, #chat-screen footer, .modal-content {
+        .screen-container {
+            background-color: var(--bg-main);
+        }
+
+        .content-box, #chat-screen header, #chat-screen footer, .modal-content {
             background-color: var(--bg-secondary);
             border-color: var(--border-color);
         }
-        #login-screen h1, #chat-screen h1, #pseudo-display, .modal-content h2 {
+        .content-box h1, #chat-screen h1, #pseudo-display, .modal-content h2 {
              color: var(--text-primary);
         }
-         #login-screen p, .modal-content p {
+         .content-box p, .modal-content p {
              color: var(--text-secondary);
         }
         #room-display {
@@ -61,7 +65,7 @@
          html.dark #room-display {
              color: #60a5fa;
          }
-        #login-screen input, #message-input, #gif-search-input {
+        .content-box input, #message-input, #gif-search-input {
             background-color: var(--bg-main);
             color: var(--text-primary);
             border-color: var(--border-color);
@@ -131,32 +135,72 @@
         #gif-results {
             grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         }
+        .tab {
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom-color: #2563eb;
+            color: #2563eb;
+        }
+        html.dark .tab.active {
+            border-bottom-color: #60a5fa;
+            color: #60a5fa;
+        }
     </style>
 </head>
 <body>
 
-    <!-- Login Screen -->
-    <div id="login-screen" class="flex items-center justify-center h-screen" style="background-color: var(--bg-main);">
-        <div class="bg-white p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
-            <h1 class="text-2xl font-bold mb-2">Bienvenue !</h1>
-            <p class="text-gray-600 mb-6">Choisissez un pseudo et un numéro de salon.</p>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen-container flex items-center justify-center h-screen">
+        <div class="content-box p-8 rounded-xl shadow-lg w-full max-w-sm">
+            <div class="flex border-b mb-6">
+                <button id="login-tab-btn" class="tab active flex-1 py-2 font-semibold">Se Connecter</button>
+                <button id="signup-tab-btn" class="tab flex-1 py-2 font-semibold text-secondary">Créer un compte</button>
+            </div>
+
+            <!-- Login Form -->
             <form id="login-form">
-                <input type="text" id="pseudo-input" placeholder="Votre pseudo" class="w-full p-3 border rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500" required>
+                 <h2 class="text-2xl font-bold mb-6 text-center">Connexion</h2>
+                 <input type="text" id="login-pseudo" placeholder="Pseudo" class="w-full p-3 border rounded-lg mb-4" required>
+                 <input type="password" id="login-password" placeholder="Mot de passe" class="w-full p-3 border rounded-lg mb-4" required>
+                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700">Se connecter</button>
+            </form>
+
+            <!-- Sign-up Form -->
+            <form id="signup-form" class="hidden">
+                <h2 class="text-2xl font-bold mb-6 text-center">Créer un Compte</h2>
+                <input type="text" id="signup-pseudo" placeholder="Pseudo (2-16 caractères, sans espaces)" class="w-full p-3 border rounded-lg mb-4" required>
+                <input type="password" id="signup-password" placeholder="Mot de passe" class="w-full p-3 border rounded-lg mb-4" required>
+                <input type="url" id="signup-pfp" placeholder="URL de l'image (facultatif)" class="w-full p-3 border rounded-lg mb-4">
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700">Créer le compte</button>
+            </form>
+            <p id="version-display" class="text-xs text-center text-gray-400 mt-6">v1.0.15</p>
+        </div>
+    </div>
+    
+    <!-- Lobby Screen -->
+    <div id="lobby-screen" class="hidden screen-container flex items-center justify-center h-screen">
+         <div class="content-box p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
+            <h1 class="text-2xl font-bold mb-2">Bienvenue, <span id="lobby-pseudo"></span> !</h1>
+            <p class="text-gray-600 mb-6">Entrez un numéro pour rejoindre un salon.</p>
+            <form id="join-form">
                 <input type="number" id="room-number-input" placeholder="Numéro du salon" class="w-full p-3 border rounded-lg text-center text-xl mb-4 focus:ring-2 focus:ring-blue-500" required>
-                <input type="url" id="pfp-input" placeholder="URL de l'image (facultatif)" class="w-full p-3 border rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500">
-                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
-                    Rejoindre le salon
+                <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700">
+                    Rejoindre
                 </button>
             </form>
-             <button id="who-is-online-btn" class="w-full mt-4 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+             <button id="who-is-online-btn" class="w-full mt-4 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                 Qui est en ligne ?
             </button>
-            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.13</p>
+            <button id="logout-btn" class="w-full mt-2 bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600">
+                Déconnexion
+            </button>
         </div>
     </div>
 
-    <!-- Chat Screen (hidden by default) -->
-    <div id="chat-screen" class="hidden flex flex-col h-screen" style="background-color: var(--bg-main);">
+
+    <!-- Chat Screen -->
+    <div id="chat-screen" class="hidden flex flex-col h-screen">
         <header class="bg-white border-b p-4 shadow-sm">
             <div class="container mx-auto flex justify-between items-center">
                 <div>
@@ -175,15 +219,10 @@
                 </div>
             </div>
         </header>
-        
-        <main id="message-list" class="flex-grow overflow-y-auto p-4 flex flex-col gap-2">
-            <!-- Messages will be appended here -->
-        </main>
-        
+        <main id="message-list" class="flex-grow overflow-y-auto p-4 flex flex-col gap-2"></main>
         <div class="px-6" style="background-color: var(--bg-secondary);">
             <p id="typing-indicator" class="text-sm italic h-6 text-secondary flex items-center"></p>
         </div>
-
         <footer class="bg-white p-4 border-t">
             <form id="chat-form" class="flex items-center gap-3">
                  <button type="button" id="send-image-btn" class="p-3 text-gray-500 hover:text-blue-600">
@@ -235,7 +274,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
@@ -269,18 +308,23 @@
         }
 
         // --- UI Elements ---
-        const loginScreen = document.getElementById('login-screen');
-        const chatScreen = document.getElementById('chat-screen');
+        const authScreen = document.getElementById('auth-screen');
+        const loginTabBtn = document.getElementById('login-tab-btn');
+        const signupTabBtn = document.getElementById('signup-tab-btn');
         const loginForm = document.getElementById('login-form');
-        const pseudoInput = document.getElementById('pseudo-input');
+        const signupForm = document.getElementById('signup-form');
+        const lobbyScreen = document.getElementById('lobby-screen');
+        const lobbyPseudo = document.getElementById('lobby-pseudo');
+        const joinForm = document.getElementById('join-form');
         const roomInput = document.getElementById('room-number-input');
-        const pfpInput = document.getElementById('pfp-input');
+        const chatScreen = document.getElementById('chat-screen');
         const roomDisplay = document.getElementById('room-display');
         const pseudoDisplay = document.getElementById('pseudo-display');
         const messageList = document.getElementById('message-list');
         const chatForm = document.getElementById('chat-form');
         const messageInput = document.getElementById('message-input');
         const leaveButton = document.getElementById('leave-button');
+        const logoutBtn = document.getElementById('logout-btn');
         const themeToggleButton = document.getElementById('theme-toggle');
         const typingIndicator = document.getElementById('typing-indicator');
         const sunIcon = document.getElementById('theme-icon-sun');
@@ -299,6 +343,28 @@
         const onlineListModalOverlay = document.getElementById('online-list-modal-overlay');
         const closeOnlineListModalBtn = document.getElementById('close-online-list-modal');
         const onlineListContent = document.getElementById('online-list-content');
+
+        const showScreen = (screen) => {
+            authScreen.classList.add('hidden');
+            lobbyScreen.classList.add('hidden');
+            chatScreen.classList.add('hidden');
+            screen.classList.remove('hidden');
+            screen.classList.add('flex');
+        };
+
+        // --- Auth Tabs ---
+        loginTabBtn.addEventListener('click', () => {
+            loginTabBtn.classList.add('active');
+            signupTabBtn.classList.remove('active');
+            loginForm.classList.remove('hidden');
+            signupForm.classList.add('hidden');
+        });
+        signupTabBtn.addEventListener('click', () => {
+            signupTabBtn.classList.add('active');
+            loginTabBtn.classList.remove('active');
+            signupForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        });
 
         // --- Theme Management ---
         const applyTheme = (theme) => {
@@ -357,10 +423,7 @@
                 leaveChat('inactivity');
             }, 300000); // 5 minutes
         };
-
-        const stopInactivityTimer = () => {
-            clearTimeout(inactivityTimer);
-        };
+        const stopInactivityTimer = () => clearTimeout(inactivityTimer);
 
         // --- Participant & Typing Functions ---
         const updatePresence = async (isJoining) => {
@@ -439,23 +502,11 @@
         const formatDate = (date) => !date ? '' : date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Paris' });
         
         // --- Core Functions ---
-        const joinChat = async (roomId, pseudo, pfpUrl) => {
-            const presenceDocRef = doc(db, `/artifacts/${appId}/public/data/roomParticipants`, roomId);
-            const docSnap = await getDoc(presenceDocRef);
-            if (docSnap.exists()) {
-                const participants = docSnap.data().participants || {};
-                const pseudoExists = Object.values(participants).some(p => p.pseudo.toLowerCase() === pseudo.toLowerCase());
-                if (pseudoExists) {
-                    alert("Ce pseudo est déjà utilisé dans ce salon. Veuillez en choisir un autre.");
-                    return;
-                }
-            }
-
-            chatRoomId = roomId; userPseudo = pseudo; userPFP = pfpUrl;
+        const joinChat = async (roomId) => {
+            chatRoomId = roomId;
             lastMessageDate = null; messageList.innerHTML = ''; isInitialLoad = true;
             await requestNotificationPermission();
-            loginScreen.classList.add('hidden');
-            chatScreen.classList.remove('hidden');
+            showScreen(chatScreen);
             roomDisplay.textContent = chatRoomId; pseudoDisplay.textContent = userPseudo;
             listenForMessages(chatRoomId); listenForTyping(chatRoomId); listenForParticipants(chatRoomId);
             await updatePresence(true);
@@ -475,9 +526,9 @@
              if (unsubscribeMessages) unsubscribeMessages();
              if (unsubscribeTyping) unsubscribeTyping();
              if (unsubscribeParticipants) unsubscribeParticipants();
-            chatRoomId = null; userPseudo = null; userPFP = null;
-            messageList.innerHTML = ''; chatScreen.classList.add('hidden'); loginScreen.classList.remove('hidden');
-            roomInput.value = ''; pseudoInput.value = ''; pfpInput.value = '';
+            chatRoomId = null; 
+            messageList.innerHTML = '';
+            showScreen(lobbyScreen);
         }
 
         const addMessageToDOM = (message) => {
@@ -593,13 +644,74 @@
         };
 
         // --- Event Listeners ---
-        loginForm.addEventListener('submit', (e) => {
+        loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const roomId = roomInput.value.trim(); const pseudo = pseudoInput.value.trim(); const pfpUrl = pfpInput.value.trim();
-            if (roomId && pseudo) { joinChat(roomId, pseudo, pfpUrl); }
+            const pseudo = document.getElementById('login-pseudo').value;
+            const password = document.getElementById('login-password').value;
+            const normalizedPseudo = pseudo.toLowerCase();
+            const usernameRef = doc(db, "usernames", normalizedPseudo);
+            try {
+                const usernameSnap = await getDoc(usernameRef);
+                if (!usernameSnap.exists()) { throw new Error("Pseudo ou mot de passe incorrect."); }
+                
+                const { uid } = usernameSnap.data();
+                const userDocRef = doc(db, "users", uid);
+                const userDoc = await getDoc(userDocRef);
+                if (!userDoc.exists()) { throw new Error("Profil utilisateur introuvable."); }
+                
+                const { email } = userDoc.data();
+                await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) {
+                alert("Erreur de connexion : " + error.message);
+            }
+        });
+        signupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const pseudo = document.getElementById('signup-pseudo').value;
+            const password = document.getElementById('signup-password').value;
+            const pfp = document.getElementById('signup-pfp').value;
+            
+            const validationRegex = /^[a-zA-Z0-9]{2,16}$/;
+            if (!validationRegex.test(pseudo)) {
+                alert("Le pseudo doit contenir entre 2 et 16 caractères et ne peut inclure que des lettres et des chiffres.");
+                return;
+            }
+
+            const normalizedPseudo = pseudo.toLowerCase();
+            const usernameRef = doc(db, "usernames", normalizedPseudo);
+            
+            try {
+                const usernameSnap = await getDoc(usernameRef);
+                if (usernameSnap.exists()) {
+                    alert("Ce pseudo est déjà utilisé. Veuillez en choisir un autre.");
+                    return;
+                }
+
+                const dummyEmail = `${normalizedPseudo}@chat.app`;
+                const userCredential = await createUserWithEmailAndPassword(auth, dummyEmail, password);
+                const user = userCredential.user;
+                
+                await setDoc(doc(db, "users", user.uid), {
+                    pseudo: pseudo,
+                    pfp: pfp,
+                    email: dummyEmail
+                });
+
+                await setDoc(usernameRef, { uid: user.uid });
+                // La connexion est automatique après la création, gérée par onAuthStateChanged
+            } catch(error) {
+                 alert("Erreur de création de compte : " + error.message);
+            }
+        });
+        
+        joinForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const roomId = roomInput.value.trim();
+            if (roomId) { joinChat(roomId); }
         });
         chatForm.addEventListener('submit', (e) => { e.preventDefault(); sendMessage(messageInput.value); });
         leaveButton.addEventListener('click', () => leaveChat('manual'));
+        logoutBtn.addEventListener('click', () => signOut(auth));
         window.addEventListener('beforeunload', () => { if(chatRoomId) updatePresence(false) });
         sendImageBtn.addEventListener('click', () => {
             resetInactivityTimer();
@@ -664,15 +776,27 @@
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                userId = user.uid; loginForm.querySelector('button').disabled = false;
-            } else {
-                userId = null; loginForm.querySelector('button').disabled = true;
-                try {
-                    await signInAnonymously(auth);
-                } catch (error) {
-                    console.error("Anonymous authentication failed:", error);
-                     document.body.innerHTML = '<div class="text-center p-8 text-red-500">Erreur d\'authentification. Impossible de charger l\'application.</div>';
+                userId = user.uid;
+                const userDocRef = doc(db, "users", userId);
+                const userDoc = await getDoc(userDocRef);
+                if(userDoc.exists()) {
+                    const userData = userDoc.data();
+                    userPseudo = userData.pseudo;
+                    userPFP = userData.pfp;
+                } else {
+                    userPseudo = 'Utilisateur'; // Fallback
+                    userPFP = '';
                 }
+                lobbyPseudo.textContent = userPseudo;
+                showScreen(lobbyScreen);
+            } else {
+                userId = null;
+                userPseudo = null;
+                userPFP = null;
+                if(chatRoomId) {
+                    leaveChat();
+                }
+                showScreen(authScreen);
             }
         });
     </script>
