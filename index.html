@@ -45,11 +45,11 @@
             color: var(--text-primary);
         }
         
-        #login-screen .bg-white, #chat-screen header, #chat-screen footer, .modal-content {
+        #login-screen .bg-white, #chat-screen header, #chat-screen footer, .modal-content, #admin-panel {
             background-color: var(--bg-secondary);
             border-color: var(--border-color);
         }
-        #login-screen h1, #chat-screen h1, #pseudo-display, .modal-content h2 {
+        #login-screen h1, #chat-screen h1, #pseudo-display, .modal-content h2, #admin-panel h1 {
              color: var(--text-primary);
         }
          #login-screen p, .modal-content p {
@@ -61,7 +61,7 @@
          html.dark #room-display {
              color: #60a5fa;
          }
-        #login-screen input, #message-input, #gif-search-input {
+        #login-screen input, #message-input, #gif-search-input, #admin-login-modal input {
             background-color: var(--bg-main);
             color: var(--text-primary);
             border-color: var(--border-color);
@@ -151,9 +151,24 @@
              <button id="who-is-online-btn" class="w-full mt-4 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
                 Qui est en ligne ?
             </button>
-            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.7</p>
+            <div class="mt-4 text-center">
+                <a href="#" id="admin-login-link" class="text-sm text-blue-600 hover:underline">Connexion Admin</a>
+            </div>
+            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.8</p>
         </div>
     </div>
+
+    <!-- Admin Panel (hidden by default) -->
+    <div id="admin-panel" class="hidden h-screen w-full p-4 md:p-8 overflow-y-auto">
+        <header class="flex justify-between items-center mb-6 pb-4 border-b">
+            <h1 class="text-3xl font-bold">Panneau d'Administration</h1>
+            <button id="admin-logout-btn" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">Déconnexion</button>
+        </header>
+        <div id="admin-room-list" class="space-y-6">
+            <!-- Admin room list will be populated here -->
+        </div>
+    </div>
+
 
     <!-- Chat Screen (hidden by default) -->
     <div id="chat-screen" class="hidden flex flex-col h-screen" style="background-color: var(--bg-main);">
@@ -190,7 +205,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
                 </button>
                 <button type="button" id="gif-btn" class="p-3 text-gray-500 hover:text-blue-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-film"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M21 7.5h-4"/><path d="M21 16.5h-4"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-film"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M21 7.5h-4"/><path d="M21 16.5h-4"/></svg>
                 </button>
                 <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
                 <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400">
@@ -200,7 +215,18 @@
         </footer>
     </div>
     
-    <!-- GIF Modal -->
+    <!-- All Modals -->
+    <div id="admin-login-modal" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-content p-8 rounded-xl shadow-lg text-center w-full max-w-sm">
+             <h2 class="text-2xl font-bold mb-6">Connexion Admin</h2>
+             <form id="admin-login-form">
+                 <input type="text" id="admin-user" placeholder="Utilisateur" class="w-full p-3 border rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500" required>
+                 <input type="password" id="admin-pass" placeholder="Mot de passe" class="w-full p-3 border rounded-lg text-center mb-4 focus:ring-2 focus:ring-blue-500" required>
+                 <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700">Connexion</button>
+             </form>
+             <button id="close-admin-login-modal" class="mt-4 text-sm text-gray-500 hover:underline">Fermer</button>
+        </div>
+    </div>
     <div id="gif-modal-overlay" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center">
         <div class="modal-content flex flex-col rounded-lg shadow-lg w-full max-w-lg max-h-[80vh]">
             <header class="p-4 rounded-t-lg flex justify-between items-center border-b">
@@ -213,8 +239,6 @@
             <div id="gif-results" class="p-4 grid gap-2 overflow-y-auto bg-gray-100 dark:bg-gray-900 rounded-b-lg"></div>
         </div>
     </div>
-    
-    <!-- Participants Modals -->
     <div id="participants-modal-overlay" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center">
         <div class="modal-content flex flex-col rounded-lg shadow-lg w-full max-w-sm">
             <header class="p-4 rounded-t-lg flex justify-between items-center border-b">
@@ -256,6 +280,7 @@
         let unsubscribeMessages = null;
         let unsubscribeTyping = null;
         let unsubscribeParticipants = null;
+        let unsubscribeAdmin = null;
         let lastMessageDate = null;
         let isInitialLoad = true;
         let typingTimeout = null;
@@ -272,6 +297,8 @@
         // --- UI Elements ---
         const loginScreen = document.getElementById('login-screen');
         const chatScreen = document.getElementById('chat-screen');
+        const adminPanel = document.getElementById('admin-panel');
+        const adminRoomList = document.getElementById('admin-room-list');
         const loginForm = document.getElementById('login-form');
         const pseudoInput = document.getElementById('pseudo-input');
         const roomInput = document.getElementById('room-number-input');
@@ -300,28 +327,24 @@
         const onlineListModalOverlay = document.getElementById('online-list-modal-overlay');
         const closeOnlineListModalBtn = document.getElementById('close-online-list-modal');
         const onlineListContent = document.getElementById('online-list-content');
+        const adminLoginLink = document.getElementById('admin-login-link');
+        const adminLoginModal = document.getElementById('admin-login-modal');
+        const adminLoginForm = document.getElementById('admin-login-form');
+        const closeAdminLoginModalBtn = document.getElementById('close-admin-login-modal');
+        const adminLogoutBtn = document.getElementById('admin-logout-btn');
 
         // --- Theme Management ---
         const applyTheme = (theme) => {
-            if (theme === 'dark') {
-                document.documentElement.classList.add('dark');
-                sunIcon.classList.add('hidden');
-                moonIcon.classList.remove('hidden');
-            } else {
-                document.documentElement.classList.remove('dark');
-                sunIcon.classList.remove('hidden');
-                moonIcon.classList.add('hidden');
-            }
+            document.documentElement.classList.toggle('dark', theme === 'dark');
+            sunIcon.classList.toggle('hidden', theme === 'dark');
+            moonIcon.classList.toggle('hidden', theme !== 'dark');
         };
         themeToggleButton.addEventListener('click', () => {
-            const newTheme = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('theme', newTheme ? 'dark' : 'light');
-            applyTheme(newTheme ? 'dark' : 'light');
+            const newTheme = document.documentElement.classList.contains('dark') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
         });
-        const loadInitialTheme = () => {
-            const savedTheme = localStorage.getItem('theme');
-            applyTheme(savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-        };
+        const loadInitialTheme = () => applyTheme(localStorage.getItem('theme') || 'light');
         loadInitialTheme();
 
         // --- GIPHY API Functions ---
@@ -353,11 +376,58 @@
                 img.className = 'w-full h-full object-cover cursor-pointer rounded hover:opacity-80';
                 img.addEventListener('click', () => {
                     sendMessage(gif.images.original.url, 'image');
-                    gifModalOverlay.classList.add('hidden');
+                    closeModals();
                 });
                 gifResultsContainer.appendChild(img);
             });
         };
+        
+        // --- Admin Functions ---
+        const showAdminPanel = () => {
+            loginScreen.classList.add('hidden');
+            adminPanel.classList.remove('hidden');
+            const presenceCollectionRef = collection(db, `/artifacts/${appId}/public/data/roomParticipants`);
+            if(unsubscribeAdmin) unsubscribeAdmin();
+            unsubscribeAdmin = onSnapshot(presenceCollectionRef, (snapshot) => {
+                adminRoomList.innerHTML = '';
+                 snapshot.forEach(doc => {
+                    const roomData = doc.data();
+                    const participants = roomData.participants || {};
+                    const participantCount = Object.keys(participants).length;
+                    if(participantCount === 0) return;
+
+                    const roomDiv = document.createElement('div');
+                    roomDiv.className = 'p-4 border rounded-lg';
+                    roomDiv.innerHTML = `<h2 class="text-xl font-bold mb-2">Salon ${doc.id} (${participantCount} en ligne)</h2>`;
+                    const userList = document.createElement('ul');
+                    userList.className = 'space-y-2';
+                    
+                    Object.entries(participants).forEach(([id, user]) => {
+                        const li = document.createElement('li');
+                        li.className = 'flex justify-between items-center';
+                        li.innerHTML = `<span>${user.pseudo}</span><button data-room-id="${doc.id}" data-user-id="${id}" class="kick-btn bg-red-500 text-white text-xs font-semibold py-1 px-2 rounded hover:bg-red-600">Expulser</button>`;
+                        userList.appendChild(li);
+                    });
+                    
+                    roomDiv.appendChild(userList);
+                    adminRoomList.appendChild(roomDiv);
+                });
+            });
+        };
+        const kickUser = async (roomId, userIdToKick) => {
+            const presenceDocRef = doc(db, `/artifacts/${appId}/public/data/roomParticipants`, roomId);
+            await updateDoc(presenceDocRef, { [`participants.${userIdToKick}`]: deleteField() });
+        };
+        adminRoomList.addEventListener('click', (e) => {
+            if(e.target.classList.contains('kick-btn')) {
+                const roomId = e.target.dataset.roomId;
+                const userIdToKick = e.target.dataset.userId;
+                if(confirm(`Voulez-vous vraiment expulser cet utilisateur ?`)) {
+                    kickUser(roomId, userIdToKick);
+                }
+            }
+        });
+
 
         // --- Participant & Typing Functions ---
         const updatePresence = async (isJoining) => {
@@ -377,6 +447,13 @@
             unsubscribeParticipants = onSnapshot(presenceDocRef, (docSnap) => {
                 const data = docSnap.data();
                 const participants = data ? data.participants : {};
+                
+                if (userId && !participants[userId] && chatRoomId) {
+                    alert('Vous avez été expulsé du salon.');
+                    leaveChat();
+                    return;
+                }
+
                 participantsList.innerHTML = '';
                 Object.values(participants).forEach(user => {
                     const li = document.createElement('li');
@@ -603,6 +680,7 @@
             gifModalOverlay.classList.add('hidden');
             participantsModalOverlay.classList.add('hidden');
             onlineListModalOverlay.classList.add('hidden');
+            adminLoginModal.classList.add('hidden');
         };
         closeGifModalBtn.addEventListener('click', closeModals);
         gifModalOverlay.addEventListener('click', (e) => { if (e.target === gifModalOverlay) closeModals(); });
@@ -637,6 +715,29 @@
         });
         closeOnlineListModalBtn.addEventListener('click', closeModals);
         onlineListModalOverlay.addEventListener('click', (e) => { if (e.target === onlineListModalOverlay) closeModals(); });
+
+        adminLoginLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            adminLoginModal.classList.remove('hidden');
+            adminLoginModal.classList.add('flex');
+        });
+        closeAdminLoginModalBtn.addEventListener('click', closeModals);
+        adminLoginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+            if (user === 'admin' && pass === 'azerty') {
+                closeModals();
+                showAdminPanel();
+            } else {
+                alert('Identifiants incorrects.');
+            }
+        });
+        adminLogoutBtn.addEventListener('click', () => {
+            if(unsubscribeAdmin) unsubscribeAdmin();
+            adminPanel.classList.add('hidden');
+            loginScreen.classList.remove('hidden');
+        });
 
         messageInput.addEventListener('input', () => {
             clearTimeout(typingTimeout); updateTypingStatus(true);
