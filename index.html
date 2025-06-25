@@ -82,13 +82,6 @@
             color: var(--other-message-text);
             border-bottom-left-radius: 0.25rem;
         }
-        .image-bubble {
-            padding: 0.25rem;
-        }
-        .image-bubble img {
-            border-radius: 1rem;
-            max-height: 200px;
-        }
         .system-message, .date-separator {
             text-align: center;
             font-size: 0.875rem;
@@ -120,6 +113,10 @@
          .other-message-bubble .time-text {
              color: var(--text-secondary);
         }
+        #typing-indicator {
+            color: var(--text-secondary);
+            height: 1.5rem;
+        }
     </style>
 </head>
 <body>
@@ -137,6 +134,7 @@
                     Rejoindre le salon
                 </button>
             </form>
+            <p class="text-xs text-gray-400 mt-6">v1.0.0</p>
         </div>
     </div>
 
@@ -163,11 +161,9 @@
         </main>
         
         <footer class="bg-white p-4 border-t">
+            <div id="typing-indicator" class="text-sm italic px-2 pb-2"></div>
             <form id="chat-form" class="flex items-center gap-3">
-                 <button type="button" id="send-image-btn" class="p-3 text-gray-500 hover:text-blue-600">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-image"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
-                </button>
-                <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                 <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
                 <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
@@ -178,7 +174,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
         const firebaseConfig = {
@@ -194,8 +190,10 @@
         let app, db, auth;
         let userId, userPseudo, chatRoomId, userPFP;
         let unsubscribeMessages = null;
+        let unsubscribeTyping = null;
         let lastMessageDate = null;
         let isInitialLoad = true;
+        let typingTimeout = null;
 
         try {
             app = initializeApp(firebaseConfig);
@@ -220,7 +218,7 @@
         const messageInput = document.getElementById('message-input');
         const leaveButton = document.getElementById('leave-button');
         const themeToggleButton = document.getElementById('theme-toggle');
-        const sendImageBtn = document.getElementById('send-image-btn');
+        const typingIndicator = document.getElementById('typing-indicator');
         const sunIcon = document.getElementById('theme-icon-sun');
         const moonIcon = document.getElementById('theme-icon-moon');
 
@@ -257,6 +255,36 @@
         
         loadInitialTheme();
 
+        // --- Typing Indicator Functions ---
+        const updateTypingStatus = async (isTyping) => {
+            if (!chatRoomId || !userId) return;
+            const typingDocRef = doc(db, `/artifacts/${appId}/public/data/typingStatus`, chatRoomId);
+            if (isTyping) {
+                await setDoc(typingDocRef, { [userId]: userPseudo }, { merge: true });
+            } else {
+                await updateDoc(typingDocRef, { [userId]: deleteField() });
+            }
+        };
+
+        const listenForTyping = (roomId) => {
+            const typingDocRef = doc(db, `/artifacts/${appId}/public/data/typingStatus`, roomId);
+            unsubscribeTyping = onSnapshot(typingDocRef, (docSnap) => {
+                const typingUsers = docSnap.data() || {};
+                const otherTypingUsers = Object.values(typingUsers).filter(pseudo => pseudo !== userPseudo);
+
+                if (otherTypingUsers.length === 0) {
+                    typingIndicator.textContent = '';
+                    typingIndicator.style.height = '0';
+                } else if (otherTypingUsers.length === 1) {
+                    typingIndicator.textContent = `${otherTypingUsers[0]} est en train d'écrire...`;
+                    typingIndicator.style.height = '1.5rem';
+                } else {
+                    typingIndicator.textContent = `Plusieurs personnes sont en train d'écrire...`;
+                     typingIndicator.style.height = '1.5rem';
+                }
+            });
+        };
+
         // --- Notification Functions ---
         const requestNotificationPermission = async () => {
             if (!('Notification' in window)) return;
@@ -277,22 +305,11 @@
         // --- Helper Functions ---
         const formatTime = (date) => {
             if (!date) return '';
-            return date.toLocaleTimeString('fr-FR', {
-                hour: '2-digit',
-                minute: '2-digit',
-                timeZone: 'Europe/Paris'
-            });
+            return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
         };
-
         const formatDate = (date) => {
             if (!date) return '';
-            return date.toLocaleDateString('fr-FR', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                timeZone: 'Europe/Paris'
-            });
+            return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Paris' });
         };
         
         // --- Core Functions ---
@@ -303,27 +320,24 @@
             lastMessageDate = null;
             messageList.innerHTML = '';
             isInitialLoad = true;
-
             await requestNotificationPermission();
-
             loginScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
-            
             roomDisplay.textContent = chatRoomId;
             pseudoDisplay.textContent = userPseudo;
-
             listenForMessages(chatRoomId);
+            listenForTyping(chatRoomId);
             await sendSystemMessage(`${userPseudo} a rejoint le salon.`);
         };
         
         const leaveChat = async () => {
              if (userPseudo && chatRoomId) {
                 await sendSystemMessage(`${userPseudo} a quitté le salon.`);
+                await updateTypingStatus(false);
              }
-             if (unsubscribeMessages) {
-                unsubscribeMessages();
-                unsubscribeMessages = null;
-            }
+             if (unsubscribeMessages) unsubscribeMessages();
+             if (unsubscribeTyping) unsubscribeTyping();
+            
             chatRoomId = null;
             userPseudo = null;
             userPFP = null;
@@ -337,7 +351,6 @@
 
         const addMessageToDOM = (message) => {
             const messageDate = message.timestamp?.toDate();
-
             if (messageDate) {
                 const messageDateString = messageDate.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
                 if (messageDateString !== lastMessageDate) {
@@ -348,7 +361,6 @@
                     lastMessageDate = messageDateString;
                 }
             }
-            
             if (message.type === 'system') {
                 const systemMessageDiv = document.createElement('div');
                 systemMessageDiv.className = 'system-message';
@@ -357,49 +369,29 @@
                 messageList.appendChild(systemMessageDiv);
             } else {
                 const isMyMessage = message.senderId === userId;
-                
                 const row = document.createElement('div');
                 row.className = `w-full flex items-end gap-2.5 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
-
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
                 const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(message.pseudo || 'A').charAt(0).toUpperCase()}`;
                 avatarImg.src = isMyMessage ? (userPFP || defaultAvatar) : (message.pfp || defaultAvatar);
                 avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
                 avatarImg.alt = message.pseudo;
-
                 const bubble = document.createElement('div');
-                const isImage = message.messageType === 'image';
-                bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'} ${isImage ? 'image-bubble' : ''}`;
-                
+                bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
                     pseudoElement.className = 'text-xs font-bold mb-1 pseudo-text';
                     pseudoElement.textContent = message.pseudo || 'Anonyme';
                     bubble.appendChild(pseudoElement);
                 }
-                
-                if (isImage) {
-                    const link = document.createElement('a');
-                    link.href = message.text;
-                    link.target = '_blank';
-                    const img = document.createElement('img');
-                    img.src = message.text;
-                    img.alt = "Image envoyée";
-                    img.className = 'max-w-full h-auto rounded-lg';
-                    link.appendChild(img);
-                    bubble.appendChild(link);
-                } else {
-                    const textElement = document.createElement('p');
-                    textElement.textContent = message.text;
-                    bubble.appendChild(textElement);
-                }
-                
+                const textElement = document.createElement('p');
+                textElement.textContent = message.text;
+                bubble.appendChild(textElement);
                 const timeElement = document.createElement('div');
                 timeElement.className = 'text-xs mt-1 time-text text-right w-full';
                 timeElement.textContent = formatTime(messageDate);
                 bubble.appendChild(timeElement);
-                
                 if (isMyMessage) {
                     row.appendChild(bubble);
                     row.appendChild(avatarImg);
@@ -407,7 +399,6 @@
                     row.appendChild(avatarImg);
                     row.appendChild(bubble);
                 }
-                
                 messageList.appendChild(row);
             }
             messageList.scrollTop = messageList.scrollHeight;
@@ -415,10 +406,8 @@
 
         const listenForMessages = (roomId) => {
             if (unsubscribeMessages) unsubscribeMessages(); 
-            
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${roomId}/messages`;
             const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
-            
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 const changes = snapshot.docChanges();
                 if (isInitialLoad) {
@@ -434,8 +423,7 @@
                             const message = change.doc.data();
                             addMessageToDOM(message);
                             if (message.type === 'user' && message.senderId !== userId) {
-                                const notifBody = message.messageType === 'image' ? 'a envoyé une image.' : message.text;
-                                showNotification(`Nouveau message de ${message.pseudo}`, notifBody);
+                                showNotification(`Nouveau message de ${message.pseudo}`, message.text);
                             }
                         }
                     });
@@ -450,40 +438,25 @@
             if (!chatRoomId) return;
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
-                await addDoc(collection(db, messagesCollectionPath), {
-                    text: text,
-                    type: 'system',
-                    timestamp: serverTimestamp()
-                });
+                await addDoc(collection(db, messagesCollectionPath), { text: text, type: 'system', timestamp: serverTimestamp() });
             } catch (error) {
                 console.error("Error sending system message: ", error);
             }
         };
 
-        const sendMessage = async (text, type = 'text') => {
+        const sendMessage = async (text) => {
             if (!text.trim() || !chatRoomId) return;
-            
-            if (type === 'text') {
-                messageInput.value = '';
-            }
+            messageInput.value = '';
+            await updateTypingStatus(false);
+            clearTimeout(typingTimeout);
 
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
-                await addDoc(collection(db, messagesCollectionPath), {
-                    text: text,
-                    type: 'user',
-                    messageType: type,
-                    senderId: userId,
-                    pseudo: userPseudo,
-                    pfp: userPFP || '',
-                    timestamp: serverTimestamp()
-                });
+                await addDoc(collection(db, messagesCollectionPath), { text: text, type: 'user', senderId: userId, pseudo: userPseudo, pfp: userPFP || '', timestamp: serverTimestamp() });
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
-                if (type === 'text') {
-                    messageInput.value = text;
-                }
+                messageInput.value = text;
             }
         };
 
@@ -500,17 +473,18 @@
 
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            sendMessage(messageInput.value, 'text');
-        });
-
-        sendImageBtn.addEventListener('click', () => {
-            const imageUrl = prompt("Veuillez entrer l'URL de l'image :");
-            if (imageUrl) {
-                sendMessage(imageUrl, 'image');
-            }
+            sendMessage(messageInput.value);
         });
         
         leaveButton.addEventListener('click', leaveChat);
+
+        messageInput.addEventListener('input', () => {
+            clearTimeout(typingTimeout);
+            updateTypingStatus(true);
+            typingTimeout = setTimeout(() => {
+                updateTypingStatus(false);
+            }, 3000);
+        });
 
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
