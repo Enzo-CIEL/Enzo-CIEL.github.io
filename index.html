@@ -134,7 +134,7 @@
                     Rejoindre le salon
                 </button>
             </form>
-            <p class="text-xs text-gray-400 mt-6">v1.0.0</p>
+            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.1</p>
         </div>
     </div>
 
@@ -259,10 +259,14 @@
         const updateTypingStatus = async (isTyping) => {
             if (!chatRoomId || !userId) return;
             const typingDocRef = doc(db, `/artifacts/${appId}/public/data/typingStatus`, chatRoomId);
-            if (isTyping) {
-                await setDoc(typingDocRef, { [userId]: userPseudo }, { merge: true });
-            } else {
-                await updateDoc(typingDocRef, { [userId]: deleteField() });
+            try {
+                if (isTyping) {
+                    await setDoc(typingDocRef, { [userId]: userPseudo }, { merge: true });
+                } else {
+                    await updateDoc(typingDocRef, { [userId]: deleteField() });
+                }
+            } catch(error) {
+                console.warn("Could not update typing status:", error.message);
             }
         };
 
@@ -446,17 +450,24 @@
 
         const sendMessage = async (text) => {
             if (!text.trim() || !chatRoomId) return;
+            
+            const originalText = text;
             messageInput.value = '';
-            await updateTypingStatus(false);
-            clearTimeout(typingTimeout);
+
+            try {
+                await updateTypingStatus(false);
+                clearTimeout(typingTimeout);
+            } catch(e) {
+                console.warn("Could not update typing status, but sending message anyway.", e);
+            }
 
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
-                await addDoc(collection(db, messagesCollectionPath), { text: text, type: 'user', senderId: userId, pseudo: userPseudo, pfp: userPFP || '', timestamp: serverTimestamp() });
+                await addDoc(collection(db, messagesCollectionPath), { text: originalText, type: 'user', senderId: userId, pseudo: userPseudo, pfp: userPFP || '', timestamp: serverTimestamp() });
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
-                messageInput.value = text;
+                messageInput.value = originalText;
             }
         };
 
