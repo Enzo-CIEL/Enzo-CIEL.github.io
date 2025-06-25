@@ -1,11 +1,181 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enzo</title>
+    <title>Discuter avec l'IA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Clean & Modern (Slate, Sky, White) -->
+    <!-- Application Structure Plan: A classic chat interface structure. The layout is vertically split into two main areas: a message display area that takes up most of the screen height and is scrollable, and a fixed input form at the bottom. This is the most intuitive and universally understood layout for a chat application, ensuring immediate usability. -->
+    <!-- Visualization & Content Choices: 
+        - Conversation: Report Info -> User/AI messages. Goal -> Display a dialogue. Viz/Presentation -> Styled chat bubbles. Interaction -> User types and sends messages. Justification -> This is the standard and most effective way to represent a conversation. Different styling for 'user' and 'model' provides clear visual distinction. Method -> HTML/CSS/JS.
+        - Loading State: Report Info -> N/A. Goal -> Provide user feedback. Viz/Presentation -> A subtle "thinking" bubble. Interaction -> Appears automatically after user sends a message. Justification -> Manages user expectations and makes the app feel responsive even during API calls. Method -> HTML/CSS/JS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        #message-list {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 1.5rem;
+        }
+        .message-bubble {
+            max-width: 75%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            margin-bottom: 0.75rem;
+            word-wrap: break-word;
+        }
+        .user-message {
+            background-color: #0284c7; /* sky-600 */
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .ai-message {
+            background-color: white;
+            color: #1e293b; /* slate-800 */
+            align-self: flex-start;
+            border: 1px solid #e2e8f0; /* slate-200 */
+            border-bottom-left-radius: 0.25rem;
+        }
+        #chat-form input:focus {
+            outline: none;
+            box-shadow: none;
+            border-color: #0284c7;
+        }
+    </style>
 </head>
 <body>
-    <h1>coucou test</h1>
+
+    <div id="chat-container">
+        <!-- Message Display Area -->
+        <div id="message-list" class="flex flex-col gap-3">
+            <!-- Initial AI Message -->
+            <div class="message-bubble ai-message">
+                <p>Bonjour ! Je suis Gemini, votre assistant IA. Comment puis-je vous aider aujourd'hui ?</p>
+            </div>
+            <!-- Messages will be appended here -->
+        </div>
+
+        <!-- Typing Indicator (hidden by default) -->
+        <div id="typing-indicator" class="hidden px-6 pb-2">
+            <div class="message-bubble ai-message">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-75"></div>
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-150"></div>
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-pulse delay-300"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Form -->
+        <div id="chat-form-container" class="p-4 bg-white border-t border-slate-200">
+            <form id="chat-form" class="flex items-center gap-3">
+                <input type="text" id="message-input" placeholder="Posez votre question ici..." class="flex-grow p-3 border border-slate-300 rounded-full focus:ring-2 focus:ring-sky-500 transition-shadow duration-200" autocomplete="off">
+                <button type="submit" class="bg-sky-600 text-white p-3 rounded-full hover:bg-sky-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:bg-slate-400">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-send-horizontal"><path d="m3 3 3 9-3 9 19-9Z"/><path d="M6 12h16"/></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('chat-form');
+            const input = document.getElementById('message-input');
+            const messageList = document.getElementById('message-list');
+            const typingIndicator = document.getElementById('typing-indicator');
+            const sendButton = form.querySelector('button[type="submit"]');
+
+            let chatHistory = [{
+                role: "model",
+                parts: [{ text: "Bonjour ! Je suis Gemini, votre assistant IA. Comment puis-je vous aider aujourd'hui ?" }]
+            }];
+
+            const addMessageToUI = (role, text) => {
+                const bubble = document.createElement('div');
+                bubble.className = `message-bubble ${role === 'user' ? 'user-message' : 'ai-message'}`;
+                
+                // A simple way to format basic markdown like **bold** and *italic*
+                let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                
+                bubble.innerHTML = `<p>${formattedText.replace(/\n/g, '<br>')}</p>`;
+                
+                messageList.appendChild(bubble);
+                messageList.scrollTop = messageList.scrollHeight;
+            };
+
+            const callGeminiAPI = async (prompt) => {
+                typingIndicator.classList.remove('hidden');
+                messageList.scrollTop = messageList.scrollHeight;
+                sendButton.disabled = true;
+
+                // Add the new user prompt to the history
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                
+                try {
+                    const apiKey = "";
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const payload = {
+                        contents: chatHistory,
+                        // Optional: Add safety settings or generation config if needed
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`API error: ${response.status} ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+
+                    let aiResponseText = "Désolé, je n'ai pas pu obtenir de réponse.";
+                    if (result.candidates && result.candidates.length > 0 && result.candidates[0].content.parts.length > 0) {
+                        aiResponseText = result.candidates[0].content.parts[0].text;
+                    }
+
+                    // Add the AI response to history and UI
+                    chatHistory.push({ role: "model", parts: [{ text: aiResponseText }] });
+                    addMessageToUI('ai', aiResponseText);
+
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    addMessageToUI('ai', "Oups, une erreur est survenue. Veuillez réessayer.");
+                } finally {
+                    typingIndicator.classList.add('hidden');
+                    sendButton.disabled = false;
+                    input.focus();
+                }
+            };
+            
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const userText = input.value.trim();
+                if (userText) {
+                    addMessageToUI('user', userText);
+                    callGeminiAPI(userText);
+                    input.value = '';
+                }
+            });
+        });
+    </script>
 </body>
 </html>
