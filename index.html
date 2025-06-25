@@ -253,6 +253,23 @@
         
         loadInitialTheme();
 
+        // --- Notification Functions ---
+        const requestNotificationPermission = async () => {
+            if (!('Notification' in window)) return;
+            if (Notification.permission === 'default') {
+                await Notification.requestPermission();
+            }
+        };
+
+        const showNotification = (title, body) => {
+            if (Notification.permission === 'granted') {
+                new Notification(title, {
+                    body: body,
+                    icon: 'https://placehold.co/64x64/2563eb/ffffff?text=💬' // Generic chat icon
+                });
+            }
+        };
+
         // --- Helper Functions ---
         const formatTime = (date) => {
             if (!date) return '';
@@ -271,6 +288,9 @@
             chatRoomId = roomId;
             userPseudo = pseudo;
             lastMessageDate = null;
+            messageList.innerHTML = ''; // Clear previous room's messages
+
+            await requestNotificationPermission();
 
             loginScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
@@ -300,7 +320,7 @@
         }
 
         const addMessageToDOM = (message) => {
-            const messageDate = message.timestamp?.toDate ? message.timestamp.toDate() : message.timestamp;
+            const messageDate = message.timestamp?.toDate ? message.timestamp.toDate() : new Date();
 
             if (messageDate) {
                 const messageDateString = messageDate.toDateString();
@@ -356,13 +376,37 @@
             
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${roomId}/messages`;
             const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
+            
+            let isInitialLoad = true;
 
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
-                lastMessageDate = null;
-                messageList.innerHTML = ''; 
-                snapshot.forEach((doc) => {
-                    addMessageToDOM(doc.data());
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === 'added') {
+                        const message = change.doc.data();
+                        
+                        if (isInitialLoad) {
+                            addMessageToDOM(message); // Add existing messages without notification
+                        } else {
+                             // Only process messages newer than the join time
+                            if (message.timestamp && message.timestamp.toMillis() > new Date().getTime() - 10000) {
+                                addMessageToDOM(message);
+                                if (document.hidden && message.senderId !== userId && message.type === 'user') {
+                                    showNotification(`Nouveau message de ${message.pseudo}`, message.text);
+                                }
+                            } else if (!message.timestamp) { // Handle optimistic messages without a server timestamp yet
+                                 addMessageToDOM(message);
+                            } else { // Handle old messages arriving late
+                                addMessageToDOM(message);
+                            }
+                        }
+                    }
                 });
+                
+                // Once the initial batch is processed, set the flag to false
+                if(isInitialLoad && snapshot.docChanges().length > 0){
+                   isInitialLoad = false;
+                }
+                
             }, (error) => {
                 console.error("Error listening for messages:", error);
                 messageList.innerHTML = '<div class="text-center text-red-500">Erreur de chargement des messages.</div>'
@@ -385,19 +429,19 @@
 
         const sendMessage = async (text) => {
             if (!text.trim() || !chatRoomId) return;
-
-            // Optimistic UI update
-            const optimisticMessage = {
+            
+            const tempMessage = {
                 text: text,
                 type: 'user',
                 senderId: userId,
                 pseudo: userPseudo,
-                timestamp: new Date() // Use local time for instant display
+                timestamp: new Date()
             };
-            addMessageToDOM(optimisticMessage);
+            // The onSnapshot listener with {includeMetadataChanges: true} would handle this,
+            // but for simplicity, we'll rely on the server's quick response.
+            // addMessageToDOM(tempMessage); // Removed for cleaner logic
             messageInput.value = '';
 
-            // Send to Firestore
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
                 await addDoc(collection(db, messagesCollectionPath), {
@@ -405,12 +449,12 @@
                     type: 'user',
                     senderId: userId,
                     pseudo: userPseudo,
-                    timestamp: serverTimestamp() // Use server time for consistency
+                    timestamp: serverTimestamp()
                 });
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
-                // Note: might want to add logic to remove optimistic message on failure
+                messageInput.value = text; // Restore message on failure
             }
         };
 
