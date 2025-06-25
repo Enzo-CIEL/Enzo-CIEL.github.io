@@ -275,7 +275,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField, getDoc, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField, getDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
         const firebaseConfig = {
@@ -686,19 +686,16 @@
                     alert("Ce pseudo est déjà utilisé. Veuillez en choisir un autre.");
                     return;
                 }
-
                 const dummyEmail = `${normalizedPseudo}@chat.app`;
                 const userCredential = await createUserWithEmailAndPassword(auth, dummyEmail, password);
                 const user = userCredential.user;
                 
-                await setDoc(doc(db, "users", user.uid), {
-                    pseudo: pseudo,
-                    pfp: pfp,
-                    email: dummyEmail
-                });
-
-                await setDoc(usernameRef, { uid: user.uid });
-                // La connexion est automatique après la création, gérée par onAuthStateChanged
+                const batch = writeBatch(db);
+                const userDocRef = doc(db, "users", user.uid);
+                batch.set(userDocRef, { pseudo: pseudo, pfp: pfp, email: dummyEmail });
+                batch.set(usernameRef, { uid: user.uid });
+                
+                await batch.commit();
             } catch(error) {
                  alert("Erreur de création de compte : " + error.message);
             }
