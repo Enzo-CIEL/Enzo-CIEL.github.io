@@ -45,14 +45,14 @@
             color: var(--text-primary);
         }
         
-        #login-screen .bg-white, #chat-screen header, #chat-screen footer {
+        #login-screen .bg-white, #chat-screen header, #chat-screen footer, .modal-content {
             background-color: var(--bg-secondary);
             border-color: var(--border-color);
         }
-        #login-screen h1, #chat-screen h1, #pseudo-display {
+        #login-screen h1, #chat-screen h1, #pseudo-display, .modal-content h2 {
              color: var(--text-primary);
         }
-         #login-screen p {
+         #login-screen p, .modal-content p {
              color: var(--text-secondary);
         }
         #room-display {
@@ -125,7 +125,7 @@
             color: var(--text-secondary);
             height: 1.5rem;
         }
-        #gif-modal-overlay {
+        .modal-overlay {
             background-color: rgba(0,0,0,0.6);
         }
         #gif-results {
@@ -148,7 +148,10 @@
                     Rejoindre le salon
                 </button>
             </form>
-            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.5</p>
+             <button id="who-is-online-btn" class="w-full mt-4 bg-gray-200 text-gray-800 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600">
+                Qui est en ligne ?
+            </button>
+            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.6</p>
         </div>
     </div>
 
@@ -161,6 +164,9 @@
                     <p class="text-xs text-secondary">Connecté en tant que: <span id="pseudo-display" class="font-semibold"></span></p>
                 </div>
                 <div class="flex items-center gap-4">
+                    <button id="participants-btn" class="p-2 rounded-full text-primary hover:bg-gray-200 dark:hover:bg-gray-700">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-users"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </button>
                     <button id="theme-toggle" class="p-2 rounded-full text-primary hover:bg-gray-200 dark:hover:bg-gray-700">
                         <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
                         <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-moon hidden"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
@@ -195,18 +201,36 @@
     </div>
     
     <!-- GIF Modal -->
-    <div id="gif-modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center" style="background-color: rgba(0,0,0,0.6);">
-        <div id="gif-modal" class="flex flex-col rounded-lg shadow-lg w-full max-w-lg max-h-[80vh]">
-            <header class="bg-white dark:bg-gray-800 p-4 rounded-t-lg flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
-                <h2 class="text-lg font-bold text-primary">Rechercher un GIF</h2>
-                <button id="close-gif-modal" class="text-primary text-2xl font-bold">&times;</button>
+    <div id="gif-modal-overlay" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-content flex flex-col rounded-lg shadow-lg w-full max-w-lg max-h-[80vh]">
+            <header class="p-4 rounded-t-lg flex justify-between items-center border-b">
+                <h2 class="text-lg font-bold">Rechercher un GIF</h2>
+                <button id="close-gif-modal" class="text-2xl font-bold">&times;</button>
             </header>
-            <div class="bg-white dark:bg-gray-800 p-4">
+            <div class="p-4">
                  <input type="text" id="gif-search-input" placeholder="Rechercher sur GIPHY..." class="w-full p-2 border rounded-lg">
             </div>
-            <div id="gif-results" class="p-4 grid gap-2 overflow-y-auto bg-gray-100 dark:bg-gray-900 rounded-b-lg" style="grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));">
-                <!-- GIFs go here -->
-            </div>
+            <div id="gif-results" class="p-4 grid gap-2 overflow-y-auto bg-gray-100 dark:bg-gray-900 rounded-b-lg"></div>
+        </div>
+    </div>
+    
+    <!-- Participants Modals -->
+    <div id="participants-modal-overlay" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-content flex flex-col rounded-lg shadow-lg w-full max-w-sm">
+            <header class="p-4 rounded-t-lg flex justify-between items-center border-b">
+                <h2 class="text-lg font-bold">Participants du Salon</h2>
+                <button id="close-participants-modal" class="text-2xl font-bold">&times;</button>
+            </header>
+            <ul id="participants-list" class="p-4 space-y-2 overflow-y-auto"></ul>
+        </div>
+    </div>
+    <div id="online-list-modal-overlay" class="modal-overlay fixed inset-0 z-50 hidden items-center justify-center">
+        <div class="modal-content flex flex-col rounded-lg shadow-lg w-full max-w-sm">
+            <header class="p-4 rounded-t-lg flex justify-between items-center border-b">
+                <h2 class="text-lg font-bold">Salons Actifs</h2>
+                <button id="close-online-list-modal" class="text-2xl font-bold">&times;</button>
+            </header>
+            <div id="online-list-content" class="p-4 overflow-y-auto"></div>
         </div>
     </div>
 
@@ -214,7 +238,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, doc, setDoc, updateDoc, deleteField, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
         const firebaseConfig = {
@@ -231,6 +255,7 @@
         let userId, userPseudo, chatRoomId, userPFP;
         let unsubscribeMessages = null;
         let unsubscribeTyping = null;
+        let unsubscribeParticipants = null;
         let lastMessageDate = null;
         let isInitialLoad = true;
         let typingTimeout = null;
@@ -267,6 +292,14 @@
         const closeGifModalBtn = document.getElementById('close-gif-modal');
         const gifSearchInput = document.getElementById('gif-search-input');
         const gifResultsContainer = document.getElementById('gif-results');
+        const participantsBtn = document.getElementById('participants-btn');
+        const participantsModalOverlay = document.getElementById('participants-modal-overlay');
+        const closeParticipantsModalBtn = document.getElementById('close-participants-modal');
+        const participantsList = document.getElementById('participants-list');
+        const whoIsOnlineBtn = document.getElementById('who-is-online-btn');
+        const onlineListModalOverlay = document.getElementById('online-list-modal-overlay');
+        const closeOnlineListModalBtn = document.getElementById('close-online-list-modal');
+        const onlineListContent = document.getElementById('online-list-content');
 
         // --- Theme Management ---
         const applyTheme = (theme) => {
@@ -280,46 +313,33 @@
                 moonIcon.classList.add('hidden');
             }
         };
-
         themeToggleButton.addEventListener('click', () => {
-            const currentTheme = localStorage.getItem('theme') || 'light';
-            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
+            const newTheme = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('theme', newTheme ? 'dark' : 'light');
+            applyTheme(newTheme ? 'dark' : 'light');
         });
-        
         const loadInitialTheme = () => {
             const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                applyTheme(savedTheme);
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-                applyTheme('dark');
-            } else {
-                applyTheme('light');
-            }
+            applyTheme(savedTheme || 'light');
         };
-        
         loadInitialTheme();
 
         // --- GIPHY API Functions ---
-        const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65'; // Public Beta Key. Replace with your own.
+        const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65'; 
         let giphySearchTimeout;
-
         const fetchGifs = async (query) => {
             const endpoint = query ? 'search' : 'trending';
             const searchQuery = query ? `&q=${encodeURIComponent(query)}` : '';
             const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_API_KEY}${searchQuery}&limit=24&rating=g`;
-            
             try {
                 const response = await fetch(url);
                 const data = await response.json();
                 displayGifs(data.data);
             } catch (error) {
                 console.error("GIPHY API Error:", error);
-                gifResultsContainer.innerHTML = '<p class="text-red-500 text-center">Erreur de chargement des GIFs.</p>';
+                gifResultsContainer.innerHTML = '<p class="text-red-500 text-center">Erreur de chargement.</p>';
             }
         };
-        
         const displayGifs = (gifs) => {
             gifResultsContainer.innerHTML = '';
             if (gifs.length === 0) {
@@ -339,7 +359,39 @@
             });
         };
 
-        // --- Typing Indicator Functions ---
+        // --- Participant & Typing Functions ---
+        const updatePresence = async (isJoining) => {
+            if (!chatRoomId || !userId) return;
+            const presenceDocRef = doc(db, `/artifacts/${appId}/public/data/roomParticipants`, chatRoomId);
+            try {
+                if(isJoining) {
+                    await setDoc(presenceDocRef, { participants: { [userId]: { pseudo: userPseudo, pfp: userPFP } } }, { merge: true });
+                } else {
+                     await updateDoc(presenceDocRef, { [`participants.${userId}`]: deleteField() });
+                }
+            } catch(e) { console.warn("Could not update presence", e); }
+        };
+        const listenForParticipants = (roomId) => {
+            if(unsubscribeParticipants) unsubscribeParticipants();
+            const presenceDocRef = doc(db, `/artifacts/${appId}/public/data/roomParticipants`, roomId);
+            unsubscribeParticipants = onSnapshot(presenceDocRef, (docSnap) => {
+                const data = docSnap.data();
+                const participants = data ? data.participants : {};
+                participantsList.innerHTML = '';
+                Object.values(participants).forEach(user => {
+                    const li = document.createElement('li');
+                    li.className = 'flex items-center gap-2 text-primary';
+                    const img = document.createElement('img');
+                    img.className = 'w-6 h-6 rounded-full object-cover';
+                    const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(user.pseudo || 'A').charAt(0).toUpperCase()}`;
+                    img.src = user.pfp || defaultAvatar;
+                    img.onerror = () => { img.src = defaultAvatar; };
+                    li.appendChild(img);
+                    li.append(user.pseudo);
+                    participantsList.appendChild(li);
+                });
+            });
+        };
         const updateTypingStatus = async (isTyping) => {
             if (!chatRoomId || !userId) return;
             const typingDocRef = doc(db, `/artifacts/${appId}/public/data/typingStatus`, chatRoomId);
@@ -349,17 +401,13 @@
                 } else {
                     await updateDoc(typingDocRef, { [userId]: deleteField() });
                 }
-            } catch(error) {
-                console.warn("Could not update typing status:", error.message);
-            }
+            } catch(error) { console.warn("Could not update typing status:", error.message); }
         };
-
         const listenForTyping = (roomId) => {
             const typingDocRef = doc(db, `/artifacts/${appId}/public/data/typingStatus`, roomId);
             unsubscribeTyping = onSnapshot(typingDocRef, (docSnap) => {
                 const typingUsers = docSnap.data() || {};
                 const otherTypingUsers = Object.values(typingUsers).filter(pseudo => pseudo !== userPseudo);
-
                 if (otherTypingUsers.length === 0) {
                     typingIndicator.textContent = '';
                 } else if (otherTypingUsers.length === 1) {
@@ -373,66 +421,44 @@
 
         // --- Notification Functions ---
         const requestNotificationPermission = async () => {
-            if (!('Notification' in window)) return;
-            if (Notification.permission === 'default') {
+            if ('Notification' in window && Notification.permission === 'default') {
                 await Notification.requestPermission();
             }
         };
-
         const showNotification = (title, body) => {
             if (document.hidden && Notification.permission === 'granted') {
-                new Notification(title, {
-                    body: body,
-                    icon: 'https://placehold.co/64x64/2563eb/ffffff?text=💬'
-                });
+                new Notification(title, { body: body, icon: 'https://placehold.co/64x64/2563eb/ffffff?text=💬' });
             }
         };
 
         // --- Helper Functions ---
-        const formatTime = (date) => {
-            if (!date) return '';
-            return date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
-        };
-        const formatDate = (date) => {
-            if (!date) return '';
-            return date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Paris' });
-        };
+        const formatTime = (date) => !date ? '' : date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
+        const formatDate = (date) => !date ? '' : date.toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Europe/Paris' });
         
         // --- Core Functions ---
         const joinChat = async (roomId, pseudo, pfpUrl) => {
-            chatRoomId = roomId;
-            userPseudo = pseudo;
-            userPFP = pfpUrl;
-            lastMessageDate = null;
-            messageList.innerHTML = '';
-            isInitialLoad = true;
+            chatRoomId = roomId; userPseudo = pseudo; userPFP = pfpUrl;
+            lastMessageDate = null; messageList.innerHTML = ''; isInitialLoad = true;
             await requestNotificationPermission();
             loginScreen.classList.add('hidden');
             chatScreen.classList.remove('hidden');
-            roomDisplay.textContent = chatRoomId;
-            pseudoDisplay.textContent = userPseudo;
-            listenForMessages(chatRoomId);
-            listenForTyping(chatRoomId);
+            roomDisplay.textContent = chatRoomId; pseudoDisplay.textContent = userPseudo;
+            listenForMessages(chatRoomId); listenForTyping(chatRoomId); listenForParticipants(chatRoomId);
+            await updatePresence(true);
             await sendSystemMessage(`${userPseudo} a rejoint le salon.`);
         };
-        
         const leaveChat = async () => {
              if (userPseudo && chatRoomId) {
                 await sendSystemMessage(`${userPseudo} a quitté le salon.`);
                 await updateTypingStatus(false);
+                await updatePresence(false);
              }
              if (unsubscribeMessages) unsubscribeMessages();
              if (unsubscribeTyping) unsubscribeTyping();
-            
-            chatRoomId = null;
-            userPseudo = null;
-            userPFP = null;
-            messageList.innerHTML = '';
-            chatScreen.classList.add('hidden');
-            loginScreen.classList.remove('hidden');
-            roomInput.value = '';
-            pseudoInput.value = '';
-            pfpInput.value = '';
+             if (unsubscribeParticipants) unsubscribeParticipants();
+            chatRoomId = null; userPseudo = null; userPFP = null;
+            messageList.innerHTML = ''; chatScreen.classList.add('hidden'); loginScreen.classList.remove('hidden');
+            roomInput.value = ''; pseudoInput.value = ''; pfpInput.value = '';
         }
 
         const addMessageToDOM = (message) => {
@@ -473,18 +499,11 @@
                     bubble.appendChild(pseudoElement);
                 }
                 if (isImage) {
-                    const link = document.createElement('a');
-                    link.href = message.text;
-                    link.target = '_blank';
-                    const img = document.createElement('img');
-                    img.src = message.text;
-                    img.alt = "Image envoyée";
-                    img.className = 'max-w-full h-auto rounded-lg';
-                    link.appendChild(img);
-                    bubble.appendChild(link);
+                    const link = document.createElement('a'); link.href = message.text; link.target = '_blank';
+                    const img = document.createElement('img'); img.src = message.text; img.alt = "Image envoyée"; img.className = 'max-w-full h-auto rounded-lg';
+                    link.appendChild(img); bubble.appendChild(link);
                 } else {
-                    const textElement = document.createElement('p');
-                    textElement.textContent = message.text;
+                    const textElement = document.createElement('p'); textElement.textContent = message.text;
                     bubble.appendChild(textElement);
                 }
                 const timeElement = document.createElement('div');
@@ -492,11 +511,9 @@
                 timeElement.textContent = formatTime(messageDate);
                 bubble.appendChild(timeElement);
                 if (isMyMessage) {
-                    row.appendChild(bubble);
-                    row.appendChild(avatarImg);
+                    row.appendChild(bubble); row.appendChild(avatarImg);
                 } else {
-                    row.appendChild(avatarImg);
-                    row.appendChild(bubble);
+                    row.appendChild(avatarImg); row.appendChild(bubble);
                 }
                 messageList.appendChild(row);
             }
@@ -510,11 +527,8 @@
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
                 const changes = snapshot.docChanges();
                 if (isInitialLoad) {
-                     messageList.innerHTML = '';
-                     lastMessageDate = null;
-                     changes.forEach(change => {
-                        if (change.type === 'added') addMessageToDOM(change.doc.data());
-                     });
+                     messageList.innerHTML = ''; lastMessageDate = null;
+                     changes.forEach(change => { if (change.type === 'added') addMessageToDOM(change.doc.data()); });
                      isInitialLoad = false;
                 } else {
                     changes.forEach(change => {
@@ -533,106 +547,97 @@
                 messageList.innerHTML = '<div class="text-center text-red-500">Erreur de chargement des messages.</div>'
             });
         };
-        
         const sendSystemMessage = async (text) => {
             if (!chatRoomId) return;
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
                 await addDoc(collection(db, messagesCollectionPath), { text: text, type: 'system', timestamp: serverTimestamp() });
-            } catch (error) {
-                console.error("Error sending system message: ", error);
-            }
+            } catch (error) { console.error("Error sending system message: ", error); }
         };
-
         const sendMessage = async (text, type = 'text') => {
             if (!text.trim() || !chatRoomId) return;
             const originalText = text;
-            if (type === 'text') {
-                messageInput.value = '';
-            }
+            if (type === 'text') { messageInput.value = ''; }
             try {
                 await updateTypingStatus(false);
                 clearTimeout(typingTimeout);
-            } catch(e) {
-                console.warn("Could not update typing status, but sending message anyway.", e);
-            }
+            } catch(e) { console.warn("Could not update typing status, but sending message anyway.", e); }
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
                 await addDoc(collection(db, messagesCollectionPath), { text: originalText, type: 'user', messageType: type, senderId: userId, pseudo: userPseudo, pfp: userPFP || '', timestamp: serverTimestamp() });
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
-                if (type === 'text') {
-                    messageInput.value = originalText;
-                }
+                if (type === 'text') { messageInput.value = originalText; }
             }
         };
 
         // --- Event Listeners ---
         loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const roomId = roomInput.value.trim();
-            const pseudo = pseudoInput.value.trim();
-            const pfpUrl = pfpInput.value.trim();
-            if (roomId && pseudo) {
-                joinChat(roomId, pseudo, pfpUrl);
-            }
+            const roomId = roomInput.value.trim(); const pseudo = pseudoInput.value.trim(); const pfpUrl = pfpInput.value.trim();
+            if (roomId && pseudo) { joinChat(roomId, pseudo, pfpUrl); }
         });
-
-        chatForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            sendMessage(messageInput.value);
-        });
-        
+        chatForm.addEventListener('submit', (e) => { e.preventDefault(); sendMessage(messageInput.value); });
         leaveButton.addEventListener('click', leaveChat);
-
+        window.addEventListener('beforeunload', () => updatePresence(false));
         sendImageBtn.addEventListener('click', () => {
             const imageUrl = prompt("Veuillez entrer l'URL de l'image :");
-            if (imageUrl) {
-                sendMessage(imageUrl, 'image');
-            }
+            if (imageUrl) { sendMessage(imageUrl, 'image'); }
         });
-
         gifBtn.addEventListener('click', () => {
-            gifModalOverlay.classList.remove('hidden');
-            gifModalOverlay.classList.add('flex');
-            gifSearchInput.focus();
-            fetchGifs(''); // Fetch trending on open
+            gifModalOverlay.classList.remove('hidden'); gifModalOverlay.classList.add('flex'); gifSearchInput.focus(); fetchGifs('');
         });
-
-        closeGifModalBtn.addEventListener('click', () => {
-             gifModalOverlay.classList.add('hidden');
-        });
-        
-        gifModalOverlay.addEventListener('click', (e) => {
-            if (e.target === gifModalOverlay) {
-                gifModalOverlay.classList.add('hidden');
-            }
-        });
-
+        const closeModals = () => {
+            gifModalOverlay.classList.add('hidden');
+            participantsModalOverlay.classList.add('hidden');
+            onlineListModalOverlay.classList.add('hidden');
+        };
+        closeGifModalBtn.addEventListener('click', closeModals);
+        gifModalOverlay.addEventListener('click', (e) => { if (e.target === gifModalOverlay) closeModals(); });
         gifSearchInput.addEventListener('keyup', (e) => {
             clearTimeout(giphySearchTimeout);
-            giphySearchTimeout = setTimeout(() => {
-                 fetchGifs(e.target.value);
-            }, 300); // Debounce
+            giphySearchTimeout = setTimeout(() => { fetchGifs(e.target.value); }, 300);
         });
+        participantsBtn.addEventListener('click', () => participantsModalOverlay.classList.remove('hidden'));
+        closeParticipantsModalBtn.addEventListener('click', () => participantsModalOverlay.classList.add('hidden'));
+        participantsModalOverlay.addEventListener('click', (e) => { if (e.target === participantsModalOverlay) closeModals() });
+        
+        whoIsOnlineBtn.addEventListener('click', async () => {
+            const presenceCollectionRef = collection(db, `/artifacts/${appId}/public/data/roomParticipants`);
+            const snapshot = await getDocs(presenceCollectionRef);
+            onlineListContent.innerHTML = '';
+            if(snapshot.empty) {
+                onlineListContent.innerHTML = '<p class="text-secondary">Personne n\'est en ligne pour le moment.</p>';
+            } else {
+                const list = document.createElement('ul');
+                list.className = 'space-y-2';
+                snapshot.forEach(doc => {
+                    const participantCount = Object.keys(doc.data().participants || {}).length;
+                    if(participantCount > 0) {
+                        const li = document.createElement('li');
+                        li.textContent = `Salon ${doc.id}: ${participantCount} participant(s)`;
+                        list.appendChild(li);
+                    }
+                });
+                onlineListContent.appendChild(list);
+            }
+            onlineListModalOverlay.classList.remove('hidden');
+        });
+        closeOnlineListModalBtn.addEventListener('click', closeModals);
+        onlineListModalOverlay.addEventListener('click', (e) => { if (e.target === onlineListModalOverlay) closeModals(); });
 
         messageInput.addEventListener('input', () => {
-            clearTimeout(typingTimeout);
-            updateTypingStatus(true);
-            typingTimeout = setTimeout(() => {
-                updateTypingStatus(false);
-            }, 3000);
+            clearTimeout(typingTimeout); updateTypingStatus(true);
+            typingTimeout = setTimeout(() => { updateTypingStatus(false); }, 3000);
         });
         
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                userId = user.uid;
-                loginForm.querySelector('button').disabled = false;
+                userId = user.uid; loginForm.querySelector('button').disabled = false;
             } else {
-                userId = null;
-                loginForm.querySelector('button').disabled = true;
+                userId = null; loginForm.querySelector('button').disabled = true;
                 try {
                     await signInAnonymously(auth);
                 } catch (error) {
