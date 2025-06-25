@@ -68,7 +68,6 @@
         }
 
         .message-bubble {
-            max-width: 100%;
             padding: 0.75rem 1rem;
             border-radius: 1.25rem;
             word-wrap: break-word;
@@ -167,27 +166,19 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Firebase Config and Initialization ---
         const firebaseConfig = {
-
-  apiKey: "AIzaSyCGqkglI2W6AMTgYyQ6yhHaDUiAffCapuA",
-
-  authDomain: "chat-par-numero.firebaseapp.com",
-
-  projectId: "chat-par-numero",
-
-  storageBucket: "chat-par-numero.firebasestorage.app",
-
-  messagingSenderId: "1083907008810",
-
-  appId: "1:1083907008810:web:93b60cc61df8a55decd653"
-
-};
-
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-chat-app';
+            apiKey: "AIzaSyCGqkglI2W6AMTgYyQ6yhHaDUiAffCapuA",
+            authDomain: "chat-par-numero.firebaseapp.com",
+            projectId: "chat-par-numero",
+            storageBucket: "chat-par-numero.appspot.com",
+            messagingSenderId: "1083907008810",
+            appId: "1:1083907008810:web:93b60cc61df8a55decd653"
+        };
+        const appId = 'default-chat-app';
         
         let app, db, auth;
         let userId, userPseudo, chatRoomId, userPFP;
@@ -349,7 +340,6 @@
                 const messageContainer = document.createElement('div');
                 messageContainer.className = `flex items-start gap-2.5 ${isMyMessage ? 'flex-row-reverse' : ''}`;
                 
-                // Avatar
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
                 const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(message.pseudo || 'A').charAt(0).toUpperCase()}`;
@@ -357,9 +347,8 @@
                 avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
                 avatarImg.alt = message.pseudo;
                 
-                // Content (bubble and time)
                 const contentContainer = document.createElement('div');
-                contentContainer.className = `flex flex-col gap-1 w-full max-w-[320px] ${isMyMessage ? 'items-end' : ''}`;
+                contentContainer.className = `flex flex-col gap-1 max-w-[320px] ${isMyMessage ? 'items-end' : 'items-start'}`;
                 
                 const bubble = document.createElement('div');
                 bubble.className = `message-bubble ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
@@ -376,7 +365,7 @@
                 bubble.appendChild(textElement);
                 
                 const timeElement = document.createElement('div');
-                timeElement.className = 'text-xs mt-1 time-text text-right';
+                timeElement.className = 'text-xs mt-1 time-text text-right w-full';
                 timeElement.textContent = formatTime(messageDate);
                 bubble.appendChild(timeElement);
                 
@@ -396,16 +385,25 @@
             const q = query(collection(db, messagesCollectionPath), orderBy("timestamp"));
             
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
-                snapshot.docChanges().forEach((change) => {
-                    if (change.type === 'added') {
-                        const message = change.doc.data();
-                        addMessageToDOM(message);
-                        if (!isInitialLoad && message.type === 'user' && message.senderId !== userId) {
-                            showNotification(`Nouveau message de ${message.pseudo}`, message.text);
+                const changes = snapshot.docChanges();
+                if (isInitialLoad) {
+                     messageList.innerHTML = '';
+                     lastMessageDate = null;
+                     changes.forEach(change => {
+                        if (change.type === 'added') addMessageToDOM(change.doc.data());
+                     });
+                     isInitialLoad = false;
+                } else {
+                    changes.forEach(change => {
+                        if (change.type === 'added') {
+                            const message = change.doc.data();
+                            addMessageToDOM(message);
+                            if (message.type === 'user' && message.senderId !== userId) {
+                                showNotification(`Nouveau message de ${message.pseudo}`, message.text);
+                            }
                         }
-                    }
-                });
-                isInitialLoad = false;
+                    });
+                }
             }, (error) => {
                 console.error("Error listening for messages:", error);
                 messageList.innerHTML = '<div class="text-center text-red-500">Erreur de chargement des messages.</div>'
@@ -477,7 +475,7 @@
                 try {
                     await signInAnonymously(auth);
                 } catch (error) {
-                    console.error("Authentication failed:", error);
+                    console.error("Anonymous authentication failed:", error);
                      document.body.innerHTML = '<div class="text-center p-8 text-red-500">Erreur d\'authentification. Impossible de charger l\'application.</div>';
                 }
             }
