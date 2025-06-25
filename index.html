@@ -61,7 +61,7 @@
          html.dark #room-display {
              color: #60a5fa;
          }
-        #login-screen input, #message-input {
+        #login-screen input, #message-input, #gif-search-input {
             background-color: var(--bg-main);
             color: var(--text-primary);
             border-color: var(--border-color);
@@ -81,6 +81,14 @@
             background-color: var(--other-message-bg);
             color: var(--other-message-text);
             border-bottom-left-radius: 0.25rem;
+        }
+        .image-bubble {
+            padding: 0.25rem;
+        }
+        .image-bubble img {
+            border-radius: 1rem;
+            max-height: 200px;
+            cursor: pointer;
         }
         .system-message, .date-separator {
             text-align: center;
@@ -113,6 +121,16 @@
          .other-message-bubble .time-text {
              color: var(--text-secondary);
         }
+        #typing-indicator {
+            color: var(--text-secondary);
+            height: 1.5rem;
+        }
+        #gif-modal-overlay {
+            background-color: rgba(0,0,0,0.6);
+        }
+        #gif-results {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        }
     </style>
 </head>
 <body>
@@ -130,7 +148,7 @@
                     Rejoindre le salon
                 </button>
             </form>
-            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.2</p>
+            <p id="version-display" class="text-xs text-gray-400 mt-6">v1.0.3</p>
         </div>
     </div>
 
@@ -162,13 +180,33 @@
 
         <footer class="bg-white p-4 border-t">
             <form id="chat-form" class="flex items-center gap-3">
-                 <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
+                <button type="button" id="gif-btn" class="p-3 text-gray-500 hover:text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-film"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M21 7.5h-4"/><path d="M21 16.5h-4"/></svg>
+                </button>
+                <input type="text" id="message-input" placeholder="Écrivez votre message..." class="w-full p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500" autocomplete="off">
                 <button type="submit" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors disabled:bg-gray-400">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                 </button>
             </form>
         </footer>
     </div>
+    
+    <!-- GIF Modal -->
+    <div id="gif-modal-overlay" class="fixed inset-0 z-50 hidden items-center justify-center">
+        <div id="gif-modal" class="flex flex-col rounded-lg shadow-lg w-full max-w-lg max-h-[80vh]">
+            <header class="bg-white dark:bg-gray-800 p-4 rounded-t-lg flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-bold text-primary">Rechercher un GIF</h2>
+                <button id="close-gif-modal" class="text-primary">&times;</button>
+            </header>
+            <div class="bg-white dark:bg-gray-800 p-4">
+                 <input type="text" id="gif-search-input" placeholder="Rechercher sur GIPHY..." class="w-full p-2 border rounded-lg">
+            </div>
+            <div id="gif-results" class="p-4 grid gap-2 overflow-y-auto bg-gray-100 dark:bg-gray-900 rounded-b-lg">
+                <!-- GIFs go here -->
+            </div>
+        </div>
+    </div>
+
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -220,6 +258,11 @@
         const typingIndicator = document.getElementById('typing-indicator');
         const sunIcon = document.getElementById('theme-icon-sun');
         const moonIcon = document.getElementById('theme-icon-moon');
+        const gifBtn = document.getElementById('gif-btn');
+        const gifModalOverlay = document.getElementById('gif-modal-overlay');
+        const closeGifModalBtn = document.getElementById('close-gif-modal');
+        const gifSearchInput = document.getElementById('gif-search-input');
+        const gifResultsContainer = document.getElementById('gif-results');
 
         // --- Theme Management ---
         const applyTheme = (theme) => {
@@ -253,6 +296,46 @@
         };
         
         loadInitialTheme();
+        
+        // --- GIPHY API Functions ---
+        const GIPHY_API_KEY = 'GlVGYHkr3WSBnllca54iNt0yFbjz7L65'; // Clé publique de test, à remplacer
+        let giphySearchTimeout;
+
+        const fetchGifs = async (query) => {
+            if (query.length < 2) {
+                gifResultsContainer.innerHTML = '<p class="text-secondary text-center">Tapez pour rechercher un GIF.</p>';
+                return;
+            }
+            const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=24&rating=g`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                displayGifs(data.data);
+            } catch (error) {
+                console.error("Erreur GIPHY:", error);
+                gifResultsContainer.innerHTML = '<p class="text-red-500 text-center">Erreur de chargement des GIFs.</p>';
+            }
+        };
+        
+        const displayGifs = (gifs) => {
+            gifResultsContainer.innerHTML = '';
+            if (gifs.length === 0) {
+                 gifResultsContainer.innerHTML = '<p class="text-secondary text-center">Aucun GIF trouvé.</p>';
+                 return;
+            }
+            gifs.forEach(gif => {
+                const img = document.createElement('img');
+                img.src = gif.images.fixed_height.url;
+                img.alt = gif.title;
+                img.className = 'w-full h-full object-cover cursor-pointer rounded hover:opacity-80';
+                img.addEventListener('click', () => {
+                    sendMessage(gif.images.original.url, 'image');
+                    gifModalOverlay.classList.add('hidden');
+                    gifModalOverlay.classList.remove('flex');
+                });
+                gifResultsContainer.appendChild(img);
+            });
+        };
 
         // --- Typing Indicator Functions ---
         const updateTypingStatus = async (isTyping) => {
@@ -370,29 +453,49 @@
                 messageList.appendChild(systemMessageDiv);
             } else {
                 const isMyMessage = message.senderId === userId;
+                
                 const row = document.createElement('div');
                 row.className = `w-full flex items-end gap-2.5 ${isMyMessage ? 'justify-end' : 'justify-start'}`;
+
                 const avatarImg = document.createElement('img');
                 avatarImg.className = 'w-8 h-8 rounded-full object-cover flex-shrink-0';
                 const defaultAvatar = `https://placehold.co/40x40/e4e6eb/050505?text=${(message.pseudo || 'A').charAt(0).toUpperCase()}`;
                 avatarImg.src = isMyMessage ? (userPFP || defaultAvatar) : (message.pfp || defaultAvatar);
                 avatarImg.onerror = () => { avatarImg.src = defaultAvatar; };
                 avatarImg.alt = message.pseudo;
+
                 const bubble = document.createElement('div');
-                bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'}`;
+                const isImage = message.messageType === 'image';
+                bubble.className = `message-bubble max-w-[calc(100%-4rem)] ${isMyMessage ? 'my-message-bubble' : 'other-message-bubble'} ${isImage ? 'image-bubble' : ''}`;
+                
                 if (!isMyMessage) {
                     const pseudoElement = document.createElement('div');
                     pseudoElement.className = 'text-xs font-bold mb-1 pseudo-text';
                     pseudoElement.textContent = message.pseudo || 'Anonyme';
                     bubble.appendChild(pseudoElement);
                 }
-                const textElement = document.createElement('p');
-                textElement.textContent = message.text;
-                bubble.appendChild(textElement);
+                
+                if (isImage) {
+                    const link = document.createElement('a');
+                    link.href = message.text;
+                    link.target = '_blank';
+                    const img = document.createElement('img');
+                    img.src = message.text;
+                    img.alt = "Image envoyée";
+                    img.className = 'max-w-full h-auto rounded-lg';
+                    link.appendChild(img);
+                    bubble.appendChild(link);
+                } else {
+                    const textElement = document.createElement('p');
+                    textElement.textContent = message.text;
+                    bubble.appendChild(textElement);
+                }
+                
                 const timeElement = document.createElement('div');
                 timeElement.className = 'text-xs mt-1 time-text text-right w-full';
                 timeElement.textContent = formatTime(messageDate);
                 bubble.appendChild(timeElement);
+                
                 if (isMyMessage) {
                     row.appendChild(bubble);
                     row.appendChild(avatarImg);
@@ -400,6 +503,7 @@
                     row.appendChild(avatarImg);
                     row.appendChild(bubble);
                 }
+                
                 messageList.appendChild(row);
             }
             messageList.scrollTop = messageList.scrollHeight;
@@ -424,7 +528,8 @@
                             const message = change.doc.data();
                             addMessageToDOM(message);
                             if (message.type === 'user' && message.senderId !== userId) {
-                                showNotification(`Nouveau message de ${message.pseudo}`, message.text);
+                                const notifBody = message.messageType === 'image' ? `${message.pseudo} a envoyé un GIF.` : message.text;
+                                showNotification(`Nouveau message de ${message.pseudo}`, notifBody);
                             }
                         }
                     });
@@ -445,11 +550,13 @@
             }
         };
 
-        const sendMessage = async (text) => {
+        const sendMessage = async (text, type = 'text') => {
             if (!text.trim() || !chatRoomId) return;
             
             const originalText = text;
-            messageInput.value = '';
+            if (type === 'text') {
+                messageInput.value = '';
+            }
 
             try {
                 await updateTypingStatus(false);
@@ -460,11 +567,13 @@
 
             const messagesCollectionPath = `/artifacts/${appId}/public/data/chatRooms/${chatRoomId}/messages`;
             try {
-                await addDoc(collection(db, messagesCollectionPath), { text: originalText, type: 'user', senderId: userId, pseudo: userPseudo, pfp: userPFP || '', timestamp: serverTimestamp() });
+                await addDoc(collection(db, messagesCollectionPath), { text: originalText, type: 'user', messageType: type, senderId: userId, pseudo: userPseudo, pfp: userPFP || '', timestamp: serverTimestamp() });
             } catch (error) {
                 console.error("Error sending message: ", error);
                 alert("Erreur lors de l'envoi du message.");
-                messageInput.value = originalText;
+                if (type === 'text') {
+                    messageInput.value = originalText;
+                }
             }
         };
 
@@ -493,6 +602,33 @@
                 updateTypingStatus(false);
             }, 3000);
         });
+
+        gifBtn.addEventListener('click', () => {
+            gifModalOverlay.classList.remove('hidden');
+            gifModalOverlay.classList.add('flex');
+            gifSearchInput.focus();
+            fetchGifs('trending');
+        });
+
+        closeGifModalBtn.addEventListener('click', () => {
+             gifModalOverlay.classList.add('hidden');
+             gifModalOverlay.classList.remove('flex');
+        });
+        
+        gifModalOverlay.addEventListener('click', (e) => {
+            if (e.target === gifModalOverlay) {
+                gifModalOverlay.classList.add('hidden');
+                gifModalOverlay.classList.remove('flex');
+            }
+        });
+
+        gifSearchInput.addEventListener('keyup', (e) => {
+            clearTimeout(giphySearchTimeout);
+            giphySearchTimeout = setTimeout(() => {
+                 fetchGifs(e.target.value);
+            }, 500); // Debounce
+        });
+
 
         // --- Authentication ---
         onAuthStateChanged(auth, async (user) => {
